@@ -1,0 +1,186 @@
+// ============================================================
+// ZM Systems — Prisma Schema
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// --- User accounts (Admin / Manager) ---
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole @default(MANAGER)
+  employeeId   String?  @unique @map("employee_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  employee  Employee?  @relation(fields: [employeeId], references: [id])
+  auditLogs AuditLog[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+}
+
+// --- Employees ---
+model Employee {
+  id               String         @id @default(uuid())
+  fullName         String         @map("full_name")
+  address          String
+  contactNumber    String         @map("contact_number")
+  emergencyContact String         @map("emergency_contact")
+  position         String
+  dailyRate        Decimal        @map("daily_rate") @db.Decimal(10, 2)
+  hireDate         DateTime       @map("hire_date") @db.Date
+  status           EmployeeStatus @default(ACTIVE)
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  attendance    Attendance[]
+  salaryRecords SalaryRecord[]
+  cashAdvances  CashAdvance[]
+  user          User?
+
+  @@map("employees")
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+// --- Attendance Logs ---
+model Attendance {
+  id         String           @id @default(uuid())
+  employeeId String           @map("employee_id")
+  date       DateTime         @db.Date
+  timeIn     DateTime         @map("time_in")
+  timeOut    DateTime?        @map("time_out")
+  totalHours Decimal?         @map("total_hours") @db.Decimal(5, 2)
+  status     AttendanceStatus @default(FULL_DAY)
+  locked     Boolean          @default(false)
+  createdAt  DateTime         @default(now()) @map("created_at")
+  updatedAt  DateTime         @updatedAt @map("updated_at")
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@unique([employeeId, date])
+  @@map("attendance")
+}
+
+enum AttendanceStatus {
+  FULL_DAY
+  HALF_DAY
+  OVERTIME
+}
+
+// --- Salary Records ---
+model SalaryRecord {
+  id            String       @id @default(uuid())
+  employeeId    String       @map("employee_id")
+  periodStart   DateTime     @map("period_start") @db.Date
+  periodEnd     DateTime     @map("period_end") @db.Date
+  regularDays   Decimal      @map("regular_days") @db.Decimal(5, 2)
+  overtimeHours Decimal      @map("overtime_hours") @db.Decimal(5, 2)
+  dailyRate     Decimal      @map("daily_rate") @db.Decimal(10, 2)
+  overtimeRate  Decimal      @map("overtime_rate") @db.Decimal(10, 2)
+  grossPay      Decimal      @map("gross_pay") @db.Decimal(12, 2)
+  deductions    Decimal      @default(0) @db.Decimal(12, 2)
+  netPay        Decimal      @map("net_pay") @db.Decimal(12, 2)
+  status        SalaryStatus @default(DRAFT)
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  employee       Employee    @relation(fields: [employeeId], references: [id])
+  deductionItems Deduction[]
+
+  @@map("salary_records")
+}
+
+enum SalaryStatus {
+  DRAFT
+  FINALIZED
+}
+
+// --- Deductions ---
+model Deduction {
+  id             String        @id @default(uuid())
+  salaryRecordId String        @map("salary_record_id")
+  type           DeductionType
+  description    String
+  amount         Decimal       @db.Decimal(10, 2)
+  cashAdvanceId  String?       @map("cash_advance_id")
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  salaryRecord SalaryRecord @relation(fields: [salaryRecordId], references: [id])
+  cashAdvance  CashAdvance? @relation(fields: [cashAdvanceId], references: [id])
+
+  @@map("deductions")
+}
+
+enum DeductionType {
+  ABSENCE
+  CASH_ADVANCE
+  OTHER
+}
+
+// --- Cash Advances ---
+model CashAdvance {
+  id               String            @id @default(uuid())
+  employeeId       String            @map("employee_id")
+  amount           Decimal           @db.Decimal(10, 2)
+  description      String
+  dateGiven        DateTime          @map("date_given") @db.Date
+  remainingBalance Decimal           @map("remaining_balance") @db.Decimal(10, 2)
+  status           CashAdvanceStatus @default(ACTIVE)
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+
+  employee   Employee    @relation(fields: [employeeId], references: [id])
+  deductions Deduction[]
+
+  @@map("cash_advances")
+}
+
+enum CashAdvanceStatus {
+  ACTIVE
+  FULLY_DEDUCTED
+}
+
+// --- Audit Logs ---
+model AuditLog {
+  id          String   @id @default(uuid())
+  entityType  String   @map("entity_type")
+  entityId    String   @map("entity_id")
+  action      String
+  oldValue    Json?    @map("old_value")
+  newValue    Json?    @map("new_value")
+  performedBy String   @map("performed_by")
+  timestamp   DateTime @default(now())
+
+  user User @relation(fields: [performedBy], references: [id])
+
+  @@map("audit_logs")
+}
+
+// --- System Settings ---
+model Setting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by")
+
+  @@map("settings")
+}
