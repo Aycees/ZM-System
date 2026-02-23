@@ -2,7 +2,7 @@ import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard, Roles } from '../auth/roles.guard';
 import { ReportsService } from './reports.service';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@zm/db';
 import { Response } from 'express';
 
 @Controller('reports')

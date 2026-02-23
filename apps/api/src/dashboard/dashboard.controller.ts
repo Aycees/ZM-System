@@ -2,7 +2,7 @@ import { Controller, Get, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard, Roles } from '../auth/roles.guard';
 import { DashboardService } from './dashboard.service';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@zm/db';
 
 @Controller('dashboard')
 @UseGuards(AuthGuard('jwt'), RolesGuard)

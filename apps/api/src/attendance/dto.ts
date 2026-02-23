@@ -1,5 +1,5 @@
 import { IsString, IsNotEmpty, IsOptional, IsDateString, IsEnum } from 'class-validator';
-import { AttendanceStatus } from '@prisma/client';
+import { AttendanceStatus } from '@zm/db';
 
 export class LogAttendanceDto {
   @IsString()

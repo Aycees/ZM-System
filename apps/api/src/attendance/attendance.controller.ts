@@ -5,7 +5,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard, Roles } from '../auth/roles.guard';
 import { AttendanceService } from './attendance.service';
 import { LogAttendanceDto, ClockOutDto, UpdateAttendanceDto } from './dto';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@zm/db';
 
 @Controller('attendance')
 @UseGuards(AuthGuard('jwt'), RolesGuard)

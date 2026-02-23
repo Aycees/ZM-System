@@ -1,5 +1,5 @@
 import { IsString, IsNotEmpty, IsEnum, IsOptional, MinLength } from 'class-validator';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@zm/db';
 
 export class LoginDto {
   @IsString()

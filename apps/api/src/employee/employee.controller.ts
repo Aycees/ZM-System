@@ -5,7 +5,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard, Roles } from '../auth/roles.guard';
 import { EmployeeService } from './employee.service';
 import { CreateEmployeeDto, UpdateEmployeeDto } from './dto';
-import { UserRole, EmployeeStatus } from '@prisma/client';
+import { UserRole, EmployeeStatus } from '@zm/db';
 
 @Controller('employees')
 @UseGuards(AuthGuard('jwt'), RolesGuard)

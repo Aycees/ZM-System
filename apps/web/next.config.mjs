@@ -3,4 +3,4 @@ const nextConfig = {
     transpilePackages: ['@zm/shared'],
 };
 
-module.exports = nextConfig;
+export default nextConfig;

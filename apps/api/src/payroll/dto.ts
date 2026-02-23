@@ -1,5 +1,5 @@
 import { IsString, IsNotEmpty, IsNumber, IsOptional, IsEnum, IsDateString, Min } from 'class-validator';
-import { DeductionType } from '@prisma/client';
+import { DeductionType } from '@zm/db';
 
 export class GeneratePayrollDto {
   @IsDateString()

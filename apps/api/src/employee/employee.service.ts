@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
-import { EmployeeStatus } from '@prisma/client';
+import { EmployeeStatus } from '@zm/db';
 import { CreateEmployeeDto, UpdateEmployeeDto } from './dto';
 
 @Injectable()

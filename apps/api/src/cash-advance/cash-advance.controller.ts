@@ -3,7 +3,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard, Roles } from '../auth/roles.guard';
 import { CashAdvanceService } from './cash-advance.service';
 import { CreateCashAdvanceDto } from './dto';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@zm/db';
 
 @Controller('cash-advances')
 @UseGuards(AuthGuard('jwt'), RolesGuard)

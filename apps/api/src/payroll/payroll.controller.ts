@@ -5,7 +5,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard, Roles } from '../auth/roles.guard';
 import { PayrollService } from './payroll.service';
 import { GeneratePayrollDto, AddDeductionDto } from './dto';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@zm/db';
 
 @Controller('payroll')
 @UseGuards(AuthGuard('jwt'), RolesGuard)

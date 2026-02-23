@@ -1,6 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@zm/db';
 
 export const ROLES_KEY = 'roles';
 export const Roles = (...roles: UserRole[]) => {

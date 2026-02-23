@@ -1,7 +1,7 @@
 import {
   IsString, IsNotEmpty, IsNumber, IsOptional, IsEnum, IsDateString, Min,
 } from 'class-validator';
-import { EmployeeStatus } from '@prisma/client';
+import { EmployeeStatus } from '@zm/db';
 
 export class CreateEmployeeDto {
   @IsString()
