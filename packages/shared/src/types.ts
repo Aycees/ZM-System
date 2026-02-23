@@ -48,7 +48,7 @@ export interface Employee {
   contactNumber: string;
   emergencyContact: string;
   position: string;
-  dailyRate: number;
+  dailyRate?: number; // Hidden from Manager
   hireDate: string;
   status: EmployeeStatus;
   createdAt: string;
@@ -106,6 +106,14 @@ export interface ClockOutDto {
   timeOut: string;
 }
 
+// --- Payroll Frequency ---
+export enum PayrollFrequency {
+  DAILY = 'DAILY',
+  WEEKLY = 'WEEKLY',
+  BI_WEEKLY = 'BI_WEEKLY',
+  MONTHLY = 'MONTHLY',
+}
+
 // --- Salary / Payroll ---
 export enum SalaryStatus {
   DRAFT = 'DRAFT',
@@ -117,11 +125,14 @@ export interface SalaryRecord {
   employeeId: string;
   periodStart: string;
   periodEnd: string;
+  frequency: PayrollFrequency;
   regularDays: number;
+  regularHours: number;
   overtimeHours: number;
   dailyRate: number;
   overtimeRate: number;
   grossPay: number;
+  incentives: number;
   deductions: number;
   netPay: number;
   status: SalaryStatus;
@@ -129,11 +140,36 @@ export interface SalaryRecord {
   updatedAt: string;
   employee?: Employee;
   deductionItems?: Deduction[];
+  incentiveItems?: Incentive[];
 }
 
 export interface GeneratePayrollDto {
   periodStart: string;
-  periodEnd: string;
+  periodEnd?: string; // Auto-calculated from frequency if not provided
+  frequency: PayrollFrequency;
+  employeeIds?: string[]; // If not provided, all active employees
+}
+
+// --- Incentives ---
+export enum IncentiveType {
+  BONUS = 'BONUS',
+  ALLOWANCE = 'ALLOWANCE',
+  OTHER = 'OTHER',
+}
+
+export interface Incentive {
+  id: string;
+  salaryRecordId: string;
+  type: IncentiveType;
+  description: string;
+  amount: number;
+  createdAt: string;
+}
+
+export interface AddIncentiveDto {
+  type: IncentiveType;
+  description: string;
+  amount: number;
 }
 
 // --- Deductions ---
@@ -157,6 +193,11 @@ export interface AddDeductionDto {
   description: string;
   amount: number;
   cashAdvanceId?: string; // If deducting from a cash advance
+}
+
+export interface UpdateDeductionDto {
+  description?: string;
+  amount?: number;
 }
 
 // --- Cash Advance ---

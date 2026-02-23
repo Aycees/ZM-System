@@ -20,8 +20,9 @@ export class AttendanceService {
     if (params?.employeeId) where.employeeId = params.employeeId;
     if (params?.dateFrom || params?.dateTo) {
       where.date = {};
-      if (params?.dateFrom) where.date.gte = new Date(params.dateFrom);
-      if (params?.dateTo) where.date.lte = new Date(params.dateTo);
+      // Use UTC dates to avoid timezone shifting
+      if (params?.dateFrom) where.date.gte = new Date(params.dateFrom + 'T00:00:00.000Z');
+      if (params?.dateTo) where.date.lte = new Date(params.dateTo + 'T00:00:00.000Z');
     }
 
     const [data, total] = await Promise.all([
@@ -53,9 +54,10 @@ export class AttendanceService {
     });
   }
 
-  async logClockIn(dto: LogAttendanceDto) {
-    const attendanceDate = dto.date ? new Date(dto.date) : new Date();
-    attendanceDate.setHours(0, 0, 0, 0);
+  async logClockIn(dto: LogAttendanceDto, performedBy: string) {
+    // TIMEZONE FIX: Parse date as UTC to prevent day shift
+    const dateStr = dto.date || new Date().toISOString().split('T')[0];
+    const attendanceDate = new Date(dateStr + 'T00:00:00.000Z');
 
     // Check for duplicate attendance on the same date
     const existing = await this.prisma.attendance.findUnique({
@@ -81,7 +83,7 @@ export class AttendanceService {
 
     const timeIn = new Date(dto.timeIn);
 
-    return this.prisma.attendance.create({
+    const record = await this.prisma.attendance.create({
       data: {
         employeeId: dto.employeeId,
         date: attendanceDate,
@@ -90,9 +92,25 @@ export class AttendanceService {
       },
       include: { employee: { select: { id: true, fullName: true, position: true } } },
     });
+
+    // Audit log for clock-in
+    await this.auditLogService.log({
+      entityType: 'Attendance',
+      entityId: record.id,
+      action: 'CLOCK_IN',
+      oldValue: null,
+      newValue: {
+        employeeId: dto.employeeId,
+        date: dateStr,
+        timeIn: dto.timeIn,
+      },
+      performedBy,
+    });
+
+    return record;
   }
 
-  async clockOut(id: string, dto: ClockOutDto) {
+  async clockOut(id: string, dto: ClockOutDto, performedBy: string) {
     const attendance = await this.prisma.attendance.findUnique({
       where: { id },
     });
@@ -135,7 +153,7 @@ export class AttendanceService {
       status = 'FULL_DAY';
     }
 
-    return this.prisma.attendance.update({
+    const record = await this.prisma.attendance.update({
       where: { id },
       data: {
         timeOut,
@@ -144,6 +162,18 @@ export class AttendanceService {
       },
       include: { employee: { select: { id: true, fullName: true, position: true } } },
     });
+
+    // Audit log for clock-out
+    await this.auditLogService.log({
+      entityType: 'Attendance',
+      entityId: id,
+      action: 'CLOCK_OUT',
+      oldValue: { timeOut: null, totalHours: null, status: attendance.status },
+      newValue: { timeOut: dto.timeOut, totalHours, status },
+      performedBy,
+    });
+
+    return record;
   }
 
   async update(id: string, dto: UpdateAttendanceDto, performedBy: string) {
@@ -200,6 +230,36 @@ export class AttendanceService {
       },
       include: { employee: { select: { id: true, fullName: true, position: true } } },
     });
+  }
+
+  async delete(id: string, performedBy: string) {
+    const existing = await this.prisma.attendance.findUnique({
+      where: { id },
+      include: { employee: { select: { id: true, fullName: true } } },
+    });
+    if (!existing) throw new NotFoundException('Attendance record not found');
+    if (existing.locked) throw new BadRequestException('This attendance record is locked and cannot be deleted');
+
+    // Audit log before deletion
+    await this.auditLogService.log({
+      entityType: 'Attendance',
+      entityId: id,
+      action: 'DELETE',
+      oldValue: {
+        employeeId: existing.employeeId,
+        employeeName: existing.employee?.fullName,
+        date: existing.date,
+        timeIn: existing.timeIn,
+        timeOut: existing.timeOut,
+        totalHours: existing.totalHours ? Number(existing.totalHours) : null,
+        status: existing.status,
+      },
+      newValue: null,
+      performedBy,
+    });
+
+    await this.prisma.attendance.delete({ where: { id } });
+    return { success: true, message: 'Attendance record deleted' };
   }
 
   async getTodayStats() {

@@ -86,23 +86,27 @@ enum AttendanceStatus {
 
 // --- Salary Records ---
 model SalaryRecord {
-  id            String       @id @default(uuid())
-  employeeId    String       @map("employee_id")
-  periodStart   DateTime     @map("period_start") @db.Date
-  periodEnd     DateTime     @map("period_end") @db.Date
-  regularDays   Decimal      @map("regular_days") @db.Decimal(5, 2)
-  overtimeHours Decimal      @map("overtime_hours") @db.Decimal(5, 2)
-  dailyRate     Decimal      @map("daily_rate") @db.Decimal(10, 2)
-  overtimeRate  Decimal      @map("overtime_rate") @db.Decimal(10, 2)
-  grossPay      Decimal      @map("gross_pay") @db.Decimal(12, 2)
-  deductions    Decimal      @default(0) @db.Decimal(12, 2)
-  netPay        Decimal      @map("net_pay") @db.Decimal(12, 2)
-  status        SalaryStatus @default(DRAFT)
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
+  id            String           @id @default(uuid())
+  employeeId    String           @map("employee_id")
+  periodStart   DateTime         @map("period_start") @db.Date
+  periodEnd     DateTime         @map("period_end") @db.Date
+  frequency     PayrollFrequency @default(WEEKLY)
+  regularDays   Decimal          @map("regular_days") @db.Decimal(5, 2)
+  regularHours  Decimal          @default(0) @map("regular_hours") @db.Decimal(7, 2)
+  overtimeHours Decimal          @map("overtime_hours") @db.Decimal(5, 2)
+  dailyRate     Decimal          @map("daily_rate") @db.Decimal(10, 2)
+  overtimeRate  Decimal          @map("overtime_rate") @db.Decimal(10, 2)
+  grossPay      Decimal          @map("gross_pay") @db.Decimal(12, 2)
+  incentives    Decimal          @default(0) @db.Decimal(12, 2)
+  deductions    Decimal          @default(0) @db.Decimal(12, 2)
+  netPay        Decimal          @map("net_pay") @db.Decimal(12, 2)
+  status        SalaryStatus     @default(DRAFT)
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
 
   employee       Employee    @relation(fields: [employeeId], references: [id])
   deductionItems Deduction[]
+  incentiveItems Incentive[]
 
   @@map("salary_records")
 }
@@ -110,6 +114,33 @@ model SalaryRecord {
 enum SalaryStatus {
   DRAFT
   FINALIZED
+}
+
+enum PayrollFrequency {
+  DAILY
+  WEEKLY
+  BI_WEEKLY
+  MONTHLY
+}
+
+// --- Incentives ---
+model Incentive {
+  id             String        @id @default(uuid())
+  salaryRecordId String        @map("salary_record_id")
+  type           IncentiveType
+  description    String
+  amount         Decimal       @db.Decimal(10, 2)
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  salaryRecord SalaryRecord @relation(fields: [salaryRecordId], references: [id])
+
+  @@map("incentives")
+}
+
+enum IncentiveType {
+  BONUS
+  ALLOWANCE
+  OTHER
 }
 
 // --- Deductions ---

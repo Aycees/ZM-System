@@ -14,15 +14,15 @@ export class EmployeeController {
 
   @Get()
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  async findAll(@Query('status') status?: EmployeeStatus) {
-    const employees = await this.employeeService.findAll(status);
+  async findAll(@Query('status') status: EmployeeStatus | undefined, @Request() req: any) {
+    const employees = await this.employeeService.findAll(status, req.user.role);
     return { success: true, data: employees };
   }
 
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  async findOne(@Param('id') id: string) {
-    const employee = await this.employeeService.findOne(id);
+  async findOne(@Param('id') id: string, @Request() req: any) {
+    const employee = await this.employeeService.findOne(id, req.user.role);
     return { success: true, data: employee };
   }
 

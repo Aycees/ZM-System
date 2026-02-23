@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { useEmployees, useArchiveEmployee } from '@/lib/queries';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -13,9 +14,9 @@ import { Plus, Search, Archive } from 'lucide-react';
 
 export default function EmployeesPage() {
   const { isAdmin } = useAuth();
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [showArchived, setShowArchived] = useState(false);
-
   const [archiveTarget, setArchiveTarget] = useState<string | null>(null);
 
   const { data: employees = [], isLoading: loading } = useEmployees(
@@ -85,47 +86,43 @@ export default function EmployeesPage() {
           ) : filtered.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">No employees found.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <table className="w-full text-sm min-w-[600px]">
                 <thead>
                   <tr className="border-b text-muted-foreground">
                     <th className="text-left py-2.5 px-3 font-medium">Name</th>
-                    <th className="text-left py-2.5 px-3 font-medium hidden md:table-cell">Position</th>
+                    <th className="text-left py-2.5 px-3 font-medium">Position</th>
                     <th className="text-left py-2.5 px-3 font-medium hidden lg:table-cell">Contact</th>
-                    <th className="text-left py-2.5 px-3 font-medium">Daily Rate</th>
+                    {isAdmin && <th className="text-left py-2.5 px-3 font-medium">Daily Rate</th>}
                     <th className="text-left py-2.5 px-3 font-medium">Status</th>
                     {isAdmin && <th className="text-left py-2.5 px-3 font-medium">Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((emp) => (
-                    <tr key={emp.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
-                      <td className="py-2.5 px-3">
-                        <Link href={`/employees/${emp.id}`} className="font-medium text-primary hover:underline">
-                          {emp.fullName}
-                        </Link>
-                        <p className="text-xs text-muted-foreground md:hidden">{emp.position}</p>
-                      </td>
-                      <td className="py-2.5 px-3 hidden md:table-cell text-muted-foreground">{emp.position}</td>
+                  {filtered.map((emp: any) => (
+                    <tr
+                      key={emp.id}
+                      className="border-b last:border-0 hover:bg-muted/50 transition-colors cursor-pointer"
+                      onClick={() => router.push(`/employees/${emp.id}`)}
+                    >
+                      <td className="py-2.5 px-3 font-medium">{emp.fullName}</td>
+                      <td className="py-2.5 px-3 text-muted-foreground">{emp.position}</td>
                       <td className="py-2.5 px-3 hidden lg:table-cell text-muted-foreground">{emp.contactNumber}</td>
-                      <td className="py-2.5 px-3 font-medium">₱{Number(emp.dailyRate).toLocaleString()}</td>
+                      {isAdmin && (
+                        <td className="py-2.5 px-3 font-medium">₱{Number(emp.dailyRate).toLocaleString()}</td>
+                      )}
                       <td className="py-2.5 px-3">
                         <Badge variant={emp.status === 'ACTIVE' ? 'success' : 'secondary'}>
                           {emp.status}
                         </Badge>
                       </td>
                       {isAdmin && (
-                        <td className="py-2.5 px-3">
-                          <div className="flex gap-1">
-                            <Link href={`/employees/${emp.id}`}>
-                              <Button variant="ghost" size="sm">Edit</Button>
-                            </Link>
-                            {emp.status === 'ACTIVE' && (
-                              <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setArchiveTarget(emp.id)}>
-                                Archive
-                              </Button>
-                            )}
-                          </div>
+                        <td className="py-2.5 px-3" onClick={(e) => e.stopPropagation()}>
+                          {emp.status === 'ACTIVE' && (
+                            <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setArchiveTarget(emp.id)}>
+                              Archive
+                            </Button>
+                          )}
                         </td>
                       )}
                     </tr>

@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Post, Patch, Param, Body, Query, UseGuards, Request,
+  Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, Request,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard, Roles } from '../auth/roles.guard';
@@ -40,15 +40,15 @@ export class AttendanceController {
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  async logClockIn(@Body() dto: LogAttendanceDto) {
-    const data = await this.attendanceService.logClockIn(dto);
+  async logClockIn(@Body() dto: LogAttendanceDto, @Request() req: any) {
+    const data = await this.attendanceService.logClockIn(dto, req.user.id);
     return { success: true, data, message: 'Clock-in logged successfully' };
   }
 
   @Patch(':id/clock-out')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  async clockOut(@Param('id') id: string, @Body() dto: ClockOutDto) {
-    const data = await this.attendanceService.clockOut(id, dto);
+  async clockOut(@Param('id') id: string, @Body() dto: ClockOutDto, @Request() req: any) {
+    const data = await this.attendanceService.clockOut(id, dto, req.user.id);
     return { success: true, data, message: 'Clock-out logged successfully' };
   }
 
@@ -61,5 +61,12 @@ export class AttendanceController {
   ) {
     const data = await this.attendanceService.update(id, dto, req.user.id);
     return { success: true, data, message: 'Attendance updated successfully' };
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.ADMIN)
+  async delete(@Param('id') id: string, @Request() req: any) {
+    await this.attendanceService.delete(id, req.user.id);
+    return { success: true, message: 'Attendance record deleted' };
   }
 }

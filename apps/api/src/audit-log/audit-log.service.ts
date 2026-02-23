@@ -30,6 +30,10 @@ export class AuditLogService {
   async findAll(params?: {
     entityType?: string;
     entityId?: string;
+    action?: string;
+    performedBy?: string;
+    dateFrom?: string;
+    dateTo?: string;
     page?: number;
     pageSize?: number;
   }) {
@@ -40,6 +44,13 @@ export class AuditLogService {
     const where: any = {};
     if (params?.entityType) where.entityType = params.entityType;
     if (params?.entityId) where.entityId = params.entityId;
+    if (params?.action) where.action = params.action;
+    if (params?.performedBy) where.performedBy = params.performedBy;
+    if (params?.dateFrom || params?.dateTo) {
+      where.timestamp = {};
+      if (params?.dateFrom) where.timestamp.gte = new Date(params.dateFrom + 'T00:00:00.000Z');
+      if (params?.dateTo) where.timestamp.lte = new Date(params.dateTo + 'T23:59:59.999Z');
+    }
 
     const [data, total] = await Promise.all([
       this.prisma.auditLog.findMany({

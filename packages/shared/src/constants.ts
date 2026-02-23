@@ -23,5 +23,18 @@ export const SETTINGS_KEYS = {
   ONCALL_RATE_PER_DAY: 'oncall_rate_per_day',
 } as const;
 
-/** Pay period duration in days */
-export const PAY_PERIOD_DAYS = 14; // bi-weekly
+/** Payroll frequency options */
+export const PAYROLL_FREQUENCIES = {
+  DAILY: 'DAILY',
+  WEEKLY: 'WEEKLY',
+  BI_WEEKLY: 'BI_WEEKLY',
+  MONTHLY: 'MONTHLY',
+} as const;
+
+/** Map frequency to number of days for auto-calculating period */
+export const FREQUENCY_DAYS: Record<string, number> = {
+  DAILY: 1,
+  WEEKLY: 7,
+  BI_WEEKLY: 14,
+  MONTHLY: 30,
+} as const;
