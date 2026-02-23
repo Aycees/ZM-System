@@ -1,15 +1,17 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
-interface FetchOptions extends RequestInit {
-  token?: string;
+/** Reads the JWT from localStorage and attaches it automatically. */
+function getToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('zm_token');
 }
 
-async function fetchApi<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
-  const { token, ...fetchOptions } = options;
+async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const token = getToken();
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...((fetchOptions.headers as Record<string, string>) || {}),
+    ...((options.headers as Record<string, string>) || {}),
   };
 
   if (token) {
@@ -17,7 +19,7 @@ async function fetchApi<T>(endpoint: string, options: FetchOptions = {}): Promis
   }
 
   const res = await fetch(`${API_BASE}${endpoint}`, {
-    ...fetchOptions,
+    ...options,
     headers,
   });
 
@@ -48,111 +50,94 @@ export const authApi = {
 
 // --- Dashboard ---
 export const dashboardApi = {
-  getStats: (token: string) =>
-    fetchApi<{ success: boolean; data: any }>('/dashboard/stats', { token }),
+  getStats: () =>
+    fetchApi<{ success: boolean; data: any }>('/dashboard/stats'),
 };
 
 // --- Employees ---
 export const employeeApi = {
-  getAll: (token: string, status?: string) =>
+  getAll: (status?: string) =>
     fetchApi<{ success: boolean; data: any[] }>(
       `/employees${status ? `?status=${status}` : ''}`,
-      { token },
     ),
-  getOne: (token: string, id: string) =>
-    fetchApi<{ success: boolean; data: any }>(`/employees/${id}`, { token }),
-  create: (token: string, data: any) =>
-    fetchApi('/employees', { method: 'POST', body: JSON.stringify(data), token }),
-  update: (token: string, id: string, data: any) =>
-    fetchApi(`/employees/${id}`, { method: 'PATCH', body: JSON.stringify(data), token }),
-  archive: (token: string, id: string) =>
-    fetchApi(`/employees/${id}/archive`, { method: 'PATCH', token }),
+  getOne: (id: string) =>
+    fetchApi<{ success: boolean; data: any }>(`/employees/${id}`),
+  create: (data: any) =>
+    fetchApi('/employees', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: any) =>
+    fetchApi(`/employees/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  archive: (id: string) =>
+    fetchApi(`/employees/${id}/archive`, { method: 'PATCH' }),
 };
 
 // --- Attendance ---
 export const attendanceApi = {
-  getAll: (token: string, params?: Record<string, string>) => {
+  getAll: (params?: Record<string, string>) => {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
-    return fetchApi<{ success: boolean; data: any[]; total: number }>(
-      `/attendance${query}`,
-      { token },
-    );
+    return fetchApi<{ success: boolean; data: any[]; total: number }>(`/attendance${query}`);
   },
-  getToday: (token: string) =>
-    fetchApi<{ success: boolean; data: any[] }>('/attendance/today', { token }),
-  clockIn: (token: string, data: any) =>
-    fetchApi('/attendance', { method: 'POST', body: JSON.stringify(data), token }),
-  clockOut: (token: string, id: string, data: any) =>
-    fetchApi(`/attendance/${id}/clock-out`, { method: 'PATCH', body: JSON.stringify(data), token }),
-  update: (token: string, id: string, data: any) =>
-    fetchApi(`/attendance/${id}`, { method: 'PATCH', body: JSON.stringify(data), token }),
+  getToday: () =>
+    fetchApi<{ success: boolean; data: any[] }>('/attendance/today'),
+  clockIn: (data: any) =>
+    fetchApi('/attendance', { method: 'POST', body: JSON.stringify(data) }),
+  clockOut: (id: string, data: any) =>
+    fetchApi(`/attendance/${id}/clock-out`, { method: 'PATCH', body: JSON.stringify(data) }),
+  update: (id: string, data: any) =>
+    fetchApi(`/attendance/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 };
 
 // --- Payroll ---
 export const payrollApi = {
-  getAll: (token: string, params?: Record<string, string>) => {
+  getAll: (params?: Record<string, string>) => {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
-    return fetchApi<{ success: boolean; data: any[]; total: number }>(
-      `/payroll${query}`,
-      { token },
-    );
+    return fetchApi<{ success: boolean; data: any[]; total: number }>(`/payroll${query}`);
   },
-  getOne: (token: string, id: string) =>
-    fetchApi<{ success: boolean; data: any }>(`/payroll/${id}`, { token }),
-  generate: (token: string, data: any) =>
-    fetchApi('/payroll/generate', { method: 'POST', body: JSON.stringify(data), token }),
-  addDeduction: (token: string, id: string, data: any) =>
-    fetchApi(`/payroll/${id}/deductions`, { method: 'POST', body: JSON.stringify(data), token }),
-  finalize: (token: string, id: string) =>
-    fetchApi(`/payroll/${id}/finalize`, { method: 'PATCH', token }),
+  getOne: (id: string) =>
+    fetchApi<{ success: boolean; data: any }>(`/payroll/${id}`),
+  generate: (data: any) =>
+    fetchApi('/payroll/generate', { method: 'POST', body: JSON.stringify(data) }),
+  addDeduction: (id: string, data: any) =>
+    fetchApi(`/payroll/${id}/deductions`, { method: 'POST', body: JSON.stringify(data) }),
+  finalize: (id: string) =>
+    fetchApi(`/payroll/${id}/finalize`, { method: 'PATCH' }),
 };
 
 // --- Settings ---
 export const settingsApi = {
-  getAll: (token: string) =>
-    fetchApi<{ success: boolean; data: any[] }>('/settings', { token }),
-  update: (token: string, key: string, value: string) =>
-    fetchApi(`/settings/${key}`, { method: 'PATCH', body: JSON.stringify({ value }), token }),
+  getAll: () =>
+    fetchApi<{ success: boolean; data: any[] }>('/settings'),
+  update: (key: string, value: string) =>
+    fetchApi(`/settings/${key}`, { method: 'PATCH', body: JSON.stringify({ value }) }),
 };
 
 // --- Cash Advances ---
 export const cashAdvanceApi = {
-  getAll: (token: string, params?: Record<string, string>) => {
+  getAll: (params?: Record<string, string>) => {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
-    return fetchApi<{ success: boolean; data: any[] }>(`/cash-advances${query}`, { token });
+    return fetchApi<{ success: boolean; data: any[] }>(`/cash-advances${query}`);
   },
-  getByEmployee: (token: string, employeeId: string) =>
+  getByEmployee: (employeeId: string) =>
     fetchApi<{ success: boolean; advances: any[]; summary: any }>(
       `/cash-advances/employee/${employeeId}`,
-      { token },
     ),
-  create: (token: string, data: any) =>
-    fetchApi('/cash-advances', { method: 'POST', body: JSON.stringify(data), token }),
-  update: (token: string, id: string, data: any) =>
-    fetchApi(`/cash-advances/${id}`, { method: 'PATCH', body: JSON.stringify(data), token }),
+  create: (data: any) =>
+    fetchApi('/cash-advances', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: any) =>
+    fetchApi(`/cash-advances/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 };
 
 // --- Audit Logs ---
 export const auditLogApi = {
-  getAll: (token: string, params?: Record<string, string>) => {
+  getAll: (params?: Record<string, string>) => {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
-    return fetchApi<{ success: boolean; data: any[]; total: number }>(
-      `/audit-logs${query}`,
-      { token },
-    );
+    return fetchApi<{ success: boolean; data: any[]; total: number }>(`/audit-logs${query}`);
   },
 };
 
 // --- Reports ---
 export const reportsApi = {
-  downloadPayroll: (token: string, periodStart: string, periodEnd: string) =>
-    fetchApi<Blob>(
-      `/reports/payroll?periodStart=${periodStart}&periodEnd=${periodEnd}`,
-      { token },
-    ),
-  downloadAttendance: (token: string, dateFrom: string, dateTo: string) =>
-    fetchApi<Blob>(
-      `/reports/attendance?dateFrom=${dateFrom}&dateTo=${dateTo}`,
-      { token },
-    ),
+  downloadPayroll: (periodStart: string, periodEnd: string) =>
+    fetchApi<Blob>(`/reports/payroll?periodStart=${periodStart}&periodEnd=${periodEnd}`),
+  downloadAttendance: (dateFrom: string, dateTo: string) =>
+    fetchApi<Blob>(`/reports/attendance?dateFrom=${dateFrom}&dateTo=${dateTo}`),
 };

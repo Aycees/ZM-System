@@ -1,29 +1,16 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '@/lib/auth-context';
-import { dashboardApi, attendanceApi } from '@/lib/api';
+import React from 'react';
+import { useDashboardStats, useTodayAttendance } from '@/lib/queries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Users, Clock, AlertTriangle, Wallet } from 'lucide-react';
 
 export default function DashboardPage() {
-  const { token } = useAuth();
-  const [stats, setStats] = useState<any>(null);
-  const [todayAttendance, setTodayAttendance] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: stats, isLoading: statsLoading } = useDashboardStats();
+  const { data: todayAttendance = [], isLoading: attLoading } = useTodayAttendance();
 
-  useEffect(() => {
-    if (token) {
-      Promise.all([
-        dashboardApi.getStats(token),
-        attendanceApi.getToday(token),
-      ]).then(([statsRes, attendRes]) => {
-        if (statsRes.success) setStats(statsRes.data);
-        if (attendRes.success) setTodayAttendance(attendRes.data);
-      }).catch(console.error).finally(() => setLoading(false));
-    }
-  }, [token]);
+  const loading = statsLoading || attLoading;
 
   if (loading) {
     return (

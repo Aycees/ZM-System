@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { settingsApi } from '@/lib/api';
+import { useSettings, useUpdateSetting } from '@/lib/queries';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,35 +15,23 @@ const SETTING_LABELS: Record<string, { label: string; description: string; unit:
 };
 
 export default function SettingsPage() {
-  const { token, isAdmin } = useAuth();
-  const [settings, setSettings] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState<string | null>(null);
+  const { isAdmin } = useAuth();
   const [editValues, setEditValues] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    if (token) {
-      settingsApi.getAll(token).then((res) => {
-        if (res.success) {
-          setSettings(res.data);
-          const values: Record<string, string> = {};
-          res.data.forEach((s: any) => { values[s.key] = s.value; });
-          setEditValues(values);
-        }
-      }).catch(console.error).finally(() => setLoading(false));
-    }
-  }, [token]);
+  const { data: settings = [], isLoading: loading } = useSettings();
+  const updateSetting = useUpdateSetting();
 
-  const handleSave = async (key: string) => {
-    if (!token) return;
-    setSaving(key);
-    try {
-      await settingsApi.update(token, key, editValues[key]);
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setSaving(null);
+  // Sync form values when settings load
+  useEffect(() => {
+    if (settings.length) {
+      const values: Record<string, string> = {};
+      settings.forEach((s: any) => { values[s.key] = s.value; });
+      setEditValues(values);
     }
+  }, [settings]);
+
+  const handleSave = (key: string) => {
+    updateSetting.mutate({ key, value: editValues[key] });
   };
 
   if (!isAdmin) return <p className="text-muted-foreground">Access restricted to Admins.</p>;
@@ -56,6 +44,17 @@ export default function SettingsPage() {
         </h1>
         <p className="text-muted-foreground text-sm">Configure system-wide rates and parameters</p>
       </div>
+
+      {updateSetting.isError && (
+        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
+          {(updateSetting.error as any)?.message ?? 'Failed to save setting.'}
+        </div>
+      )}
+      {updateSetting.isSuccess && (
+        <div className="bg-emerald-50 text-emerald-700 text-sm p-3 rounded-lg">
+          Setting saved successfully.
+        </div>
+      )}
 
       {loading ? (
         <div className="space-y-4">{[...Array(2)].map((_, i) => <div key={i} className="h-32 bg-muted rounded-lg animate-pulse" />)}</div>
@@ -81,10 +80,10 @@ export default function SettingsPage() {
                   </div>
                   <Button
                     onClick={() => handleSave(setting.key)}
-                    disabled={saving === setting.key}
+                    disabled={updateSetting.isPending && updateSetting.variables?.key === setting.key}
                     size="sm"
                   >
-                    <Save className="h-4 w-4 mr-1" /> {saving === setting.key ? 'Saving...' : 'Save'}
+                    <Save className="h-4 w-4 mr-1" /> {updateSetting.isPending && updateSetting.variables?.key === setting.key ? 'Saving...' : 'Save'}
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">

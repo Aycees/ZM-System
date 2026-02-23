@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { authApi, employeeApi } from '@/lib/api';
-import { useAuth } from '@/lib/auth-context';
+import { useMutation } from '@tanstack/react-query';
+import { authApi } from '@/lib/api';
+import { useEmployees } from '@/lib/queries';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,51 +12,40 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 
 export default function SignupPage() {
   const router = useRouter();
-  const { token } = useAuth();
   const [form, setForm] = useState({ username: '', password: '', confirmPassword: '', role: 'MANAGER', employeeId: '' });
-  const [error, setError] = useState('');
+  const [validationError, setValidationError] = useState('');
   const [success, setSuccess] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [employees, setEmployees] = useState<any[]>([]);
 
-  useEffect(() => {
-    if (token) {
-      employeeApi.getAll(token).then((res) => {
-        if (res.success) setEmployees(res.data);
-      }).catch(() => {});
-    }
-  }, [token]);
+  const { data: employees = [] } = useEmployees();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const signupMutation = useMutation({
+    mutationFn: (data: { username: string; password: string; role: string; employeeId?: string }) =>
+      authApi.signup(data),
+    onSuccess: () => {
+      setSuccess('Account created successfully!');
+      setForm({ username: '', password: '', confirmPassword: '', role: 'MANAGER', employeeId: '' });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setValidationError('');
     setSuccess('');
 
     if (form.password !== form.confirmPassword) {
-      setError('Passwords do not match');
+      setValidationError('Passwords do not match');
       return;
     }
-
     if (form.password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setValidationError('Password must be at least 6 characters');
       return;
     }
-
-    setLoading(true);
-    try {
-      await authApi.signup({
-        username: form.username,
-        password: form.password,
-        role: form.role,
-        employeeId: form.role === 'MANAGER' ? form.employeeId || undefined : undefined,
-      });
-      setSuccess('Account created successfully!');
-      setForm({ username: '', password: '', confirmPassword: '', role: 'MANAGER', employeeId: '' });
-    } catch (err: any) {
-      setError(err.message || 'Signup failed');
-    } finally {
-      setLoading(false);
-    }
+    signupMutation.mutate({
+      username: form.username,
+      password: form.password,
+      role: form.role,
+      employeeId: form.role === 'MANAGER' ? form.employeeId || undefined : undefined,
+    });
   };
 
   return (
@@ -76,8 +66,10 @@ export default function SignupPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg text-center">{error}</div>
+              {(validationError || signupMutation.error) && (
+                <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg text-center">
+                  {validationError || (signupMutation.error as any)?.message || 'Signup failed'}
+                </div>
               )}
               {success && (
                 <div className="bg-emerald-50 text-emerald-700 text-sm p-3 rounded-lg text-center">{success}</div>
@@ -128,8 +120,8 @@ export default function SignupPage() {
                 </div>
               )}
 
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Creating...' : 'Create Account'}
+              <Button type="submit" className="w-full" disabled={signupMutation.isPending}>
+                {signupMutation.isPending ? 'Creating...' : 'Create Account'}
               </Button>
             </form>
           </CardContent>

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { reportsApi } from '@/lib/api';
+import { useDownloadPayrollReport, useDownloadAttendanceReport } from '@/lib/queries';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,42 +10,19 @@ import { Label } from '@/components/ui/label';
 import { FileDown, FileSpreadsheet } from 'lucide-react';
 
 export default function ReportsPage() {
-  const { token, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const [payrollDates, setPayrollDates] = useState({ periodStart: '', periodEnd: '' });
   const [attendanceDates, setAttendanceDates] = useState({ dateFrom: '', dateTo: '' });
-  const [downloading, setDownloading] = useState<string | null>(null);
 
-  const downloadFile = (blob: Blob, filename: string) => {
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
+  const payrollReport = useDownloadPayrollReport();
+  const attendanceReport = useDownloadAttendanceReport();
+
+  const handlePayrollExport = () => {
+    payrollReport.mutate(payrollDates);
   };
 
-  const handlePayrollExport = async () => {
-    if (!token) return;
-    setDownloading('payroll');
-    try {
-      const blob = await reportsApi.downloadPayroll(token, payrollDates.periodStart, payrollDates.periodEnd);
-      downloadFile(blob, `payroll_${payrollDates.periodStart}_${payrollDates.periodEnd}.xlsx`);
-    } catch (err: any) {
-      alert(err.message);
-    } finally { setDownloading(null); }
-  };
-
-  const handleAttendanceExport = async () => {
-    if (!token) return;
-    setDownloading('attendance');
-    try {
-      const blob = await reportsApi.downloadAttendance(token, attendanceDates.dateFrom, attendanceDates.dateTo);
-      downloadFile(blob, `attendance_${attendanceDates.dateFrom}_${attendanceDates.dateTo}.xlsx`);
-    } catch (err: any) {
-      alert(err.message);
-    } finally { setDownloading(null); }
+  const handleAttendanceExport = () => {
+    attendanceReport.mutate(attendanceDates);
   };
 
   return (
@@ -74,8 +51,13 @@ export default function ReportsPage() {
               <Input type="date" value={attendanceDates.dateTo} onChange={(e) => setAttendanceDates({ ...attendanceDates, dateTo: e.target.value })} />
             </div>
           </div>
-          <Button onClick={handleAttendanceExport} disabled={!attendanceDates.dateFrom || !attendanceDates.dateTo || downloading === 'attendance'}>
-            <FileDown className="h-4 w-4 mr-2" /> {downloading === 'attendance' ? 'Downloading...' : 'Download Excel'}
+          {attendanceReport.isError && (
+            <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg mb-3">
+              {(attendanceReport.error as any)?.message ?? 'Failed to download attendance report.'}
+            </div>
+          )}
+          <Button onClick={handleAttendanceExport} disabled={!attendanceDates.dateFrom || !attendanceDates.dateTo || attendanceReport.isPending}>
+            <FileDown className="h-4 w-4 mr-2" /> {attendanceReport.isPending ? 'Downloading...' : 'Download Excel'}
           </Button>
         </CardContent>
       </Card>
@@ -100,8 +82,13 @@ export default function ReportsPage() {
                 <Input type="date" value={payrollDates.periodEnd} onChange={(e) => setPayrollDates({ ...payrollDates, periodEnd: e.target.value })} />
               </div>
             </div>
-            <Button onClick={handlePayrollExport} disabled={!payrollDates.periodStart || !payrollDates.periodEnd || downloading === 'payroll'}>
-              <FileDown className="h-4 w-4 mr-2" /> {downloading === 'payroll' ? 'Downloading...' : 'Download Excel'}
+            {payrollReport.isError && (
+              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg mb-3">
+                {(payrollReport.error as any)?.message ?? 'Failed to download payroll report.'}
+              </div>
+            )}
+            <Button onClick={handlePayrollExport} disabled={!payrollDates.periodStart || !payrollDates.periodEnd || payrollReport.isPending}>
+              <FileDown className="h-4 w-4 mr-2" /> {payrollReport.isPending ? 'Downloading...' : 'Download Excel'}
             </Button>
           </CardContent>
         </Card>

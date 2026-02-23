@@ -2,8 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
-import { employeeApi } from '@/lib/api';
+import { useCreateEmployee } from '@/lib/queries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,31 +10,19 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft } from 'lucide-react';
 
 export default function NewEmployeePage() {
-  const { token } = useAuth();
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const createEmployee = useCreateEmployee();
   const [form, setForm] = useState({
     fullName: '', address: '', contactNumber: '', emergencyContact: '',
     position: '', dailyRate: '', hireDate: '',
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token) return;
-    setError('');
-    setLoading(true);
-    try {
-      await employeeApi.create(token, {
-        ...form,
-        dailyRate: parseFloat(form.dailyRate),
-      });
-      router.push('/employees');
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    createEmployee.mutate({
+      ...form,
+      dailyRate: parseFloat(form.dailyRate),
+    });
   };
 
   const updateField = (field: string, value: string) => setForm({ ...form, [field]: value });
@@ -53,7 +40,7 @@ export default function NewEmployeePage() {
       <Card>
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">{error}</div>}
+            {createEmployee.error && <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">{(createEmployee.error as any).message}</div>}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2 sm:col-span-2">
@@ -93,7 +80,7 @@ export default function NewEmployeePage() {
             </div>
 
             <div className="flex gap-3 pt-4">
-              <Button type="submit" disabled={loading}>{loading ? 'Creating...' : 'Add Employee'}</Button>
+              <Button type="submit" disabled={createEmployee.isPending}>{createEmployee.isPending ? 'Creating...' : 'Add Employee'}</Button>
               <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
             </div>
           </form>

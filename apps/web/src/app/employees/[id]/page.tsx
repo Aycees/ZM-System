@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { employeeApi } from '@/lib/api';
+import { useEmployee, useUpdateEmployee } from '@/lib/queries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,49 +13,33 @@ import { ArrowLeft, Save } from 'lucide-react';
 
 export default function EmployeeDetailPage() {
   const { id } = useParams();
-  const { token, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const router = useRouter();
-  const [employee, setEmployee] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<any>({});
 
-  useEffect(() => {
-    if (token && id) {
-      employeeApi.getOne(token, id as string).then((res) => {
-        if (res.success) {
-          setEmployee(res.data);
-          setForm({
-            fullName: res.data.fullName,
-            address: res.data.address,
-            contactNumber: res.data.contactNumber,
-            emergencyContact: res.data.emergencyContact,
-            position: res.data.position,
-            dailyRate: Number(res.data.dailyRate),
-            hireDate: res.data.hireDate?.split('T')[0],
-          });
-        }
-      }).catch(console.error).finally(() => setLoading(false));
-    }
-  }, [token, id]);
+  const { data: employee, isLoading: loading } = useEmployee(id as string);
+  const updateEmployee = useUpdateEmployee(id as string);
 
-  const handleSave = async () => {
-    if (!token || !id) return;
-    setError('');
-    setSaving(true);
-    try {
-      await employeeApi.update(token, id as string, form);
-      setEditing(false);
-      // Reload
-      const res = await employeeApi.getOne(token, id as string);
-      if (res.success) setEmployee(res.data);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setSaving(false);
+  // Populate form when employee data loads
+  useEffect(() => {
+    if (employee) {
+      setForm({
+        fullName: employee.fullName,
+        address: employee.address,
+        contactNumber: employee.contactNumber,
+        emergencyContact: employee.emergencyContact,
+        position: employee.position,
+        dailyRate: Number(employee.dailyRate),
+        hireDate: employee.hireDate?.split('T')[0],
+      });
     }
+  }, [employee]);
+
+  const handleSave = () => {
+    updateEmployee.mutate(form, {
+      onSuccess: () => setEditing(false),
+    });
   };
 
   if (loading) {
@@ -90,7 +74,7 @@ export default function EmployeeDetailPage() {
           )}
         </CardHeader>
         <CardContent>
-          {error && <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg mb-4">{error}</div>}
+          {updateEmployee.error && <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg mb-4">{(updateEmployee.error as any).message}</div>}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -159,8 +143,8 @@ export default function EmployeeDetailPage() {
 
           {editing && (
             <div className="flex gap-3 mt-6">
-              <Button onClick={handleSave} disabled={saving}>
-                <Save className="h-4 w-4 mr-2" /> {saving ? 'Saving...' : 'Save Changes'}
+              <Button onClick={handleSave} disabled={updateEmployee.isPending}>
+                <Save className="h-4 w-4 mr-2" /> {updateEmployee.isPending ? 'Saving...' : 'Save Changes'}
               </Button>
               <Button variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
             </div>

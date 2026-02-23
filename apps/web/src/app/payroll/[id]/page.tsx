@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
-import { payrollApi, cashAdvanceApi } from '@/lib/api';
+import { usePayrollRecord, useAddDeduction, useCashAdvancesByEmployee } from '@/lib/queries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,49 +12,30 @@ import { ArrowLeft, Plus } from 'lucide-react';
 
 export default function PayrollDetailPage() {
   const { id } = useParams();
-  const { token } = useAuth();
   const router = useRouter();
-  const [record, setRecord] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [showDeduction, setShowDeduction] = useState(false);
-  const [cashAdvances, setCashAdvances] = useState<any[]>([]);
   const [deductForm, setDeductForm] = useState({ type: 'ABSENCE', description: '', amount: '', cashAdvanceId: '' });
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
 
-  const loadData = async () => {
-    if (!token || !id) return;
-    try {
-      const res = await payrollApi.getOne(token, id as string);
-      if (res.success) {
-        setRecord(res.data);
-        // Load active cash advances for this employee
-        const caRes = await cashAdvanceApi.getByEmployee(token, res.data.employeeId);
-        if (caRes.success) setCashAdvances(caRes.advances || []);
-      }
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
-  };
+  const { data: record, isLoading: loading } = usePayrollRecord(id as string);
+  const { data: cashAdvances = [] } = useCashAdvancesByEmployee(record?.employeeId);
+  const addDeduction = useAddDeduction(id as string);
 
-  useEffect(() => { loadData(); }, [token, id]);
-
-  const handleAddDeduction = async (e: React.FormEvent) => {
+  const handleAddDeduction = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token || !id) return;
-    setError('');
-    setSubmitting(true);
-    try {
-      await payrollApi.addDeduction(token, id as string, {
+    addDeduction.mutate(
+      {
         type: deductForm.type,
         description: deductForm.description,
         amount: parseFloat(deductForm.amount),
         cashAdvanceId: deductForm.type === 'CASH_ADVANCE' ? deductForm.cashAdvanceId || undefined : undefined,
-      });
-      setShowDeduction(false);
-      setDeductForm({ type: 'ABSENCE', description: '', amount: '', cashAdvanceId: '' });
-      loadData();
-    } catch (err: any) { setError(err.message); }
-    finally { setSubmitting(false); }
+      },
+      {
+        onSuccess: () => {
+          setShowDeduction(false);
+          setDeductForm({ type: 'ABSENCE', description: '', amount: '', cashAdvanceId: '' });
+        },
+      },
+    );
   };
 
   if (loading) return <div className="space-y-4 animate-pulse"><div className="h-8 bg-muted rounded w-48" /><div className="h-48 bg-muted rounded-lg" /></div>;
@@ -106,7 +86,7 @@ export default function PayrollDetailPage() {
         <CardContent>
           {showDeduction && (
             <form onSubmit={handleAddDeduction} className="space-y-3 mb-4 p-4 bg-muted/50 rounded-lg">
-              {error && <div className="bg-destructive/10 text-destructive text-sm p-2 rounded">{error}</div>}
+              {addDeduction.error && <div className="bg-destructive/10 text-destructive text-sm p-2 rounded">{(addDeduction.error as any).message}</div>}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs">Type</Label>
@@ -139,7 +119,7 @@ export default function PayrollDetailPage() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button type="submit" size="sm" disabled={submitting}>{submitting ? 'Adding...' : 'Add'}</Button>
+                <Button type="submit" size="sm" disabled={addDeduction.isPending}>{addDeduction.isPending ? 'Adding...' : 'Add'}</Button>
                 <Button type="button" variant="outline" size="sm" onClick={() => setShowDeduction(false)}>Cancel</Button>
               </div>
             </form>

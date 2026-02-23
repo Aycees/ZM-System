@@ -76,8 +76,7 @@ ZM Systems is a business management platform designed for a Coca-Cola distributo
 | Layer      | Technology         | Purpose                  |
 |------------|-------------------|--------------------------|
 | Frontend   | Next.js 14        | React SSR/CSR framework  |
-| UI         | Tailwind CSS + shadcn/ui | Component library   |
-| Backend    | NestJS 10         | REST API framework       |
+| UI         | Tailwind CSS + shadcn/ui | Component library   || Data Fetching | TanStack Query v5 | Server-state caching, mutations, optimistic updates || Backend    | NestJS 10         | REST API framework       |
 | ORM        | Prisma 6          | Database client & schema |
 | Database   | Supabase (PostgreSQL) | Hosted Postgres       |
 | Auth       | JWT + Passport    | Token-based auth         |
@@ -384,4 +383,62 @@ pnpm dev
 
 > **Last Updated**: February 23, 2026  
 > **Author**: ZM Systems Development  
-> **Version**: 1.0.0
+> **Version**: 1.1.0
+
+---
+
+## Frontend Caching / Data-Fetching Strategy
+
+All server-state management in the Next.js frontend is handled by **TanStack Query v5** (`@tanstack/react-query`). Every data fetch and mutation goes through centralized query hooks in `apps/web/src/lib/queries/`.
+
+### QueryClient Defaults
+
+| Option | Value | Reason |
+|---|---|---|
+| `staleTime` | 5 minutes | Avoids redundant refetches for reference data |
+| `refetchOnWindowFocus` | `false` | Prevents background refetches disrupting user flow |
+| `retry` | 1 | Single retry on transient failure |
+
+### Query Key Conventions
+
+```
+['dashboard', 'stats']                     — dashboard stats
+['attendance', 'today']                    — today's attendance (dashboard, live clock-in/out)
+['attendance', 'list', { dateFrom, dateTo }]  — filtered attendance list
+['employees', 'list', { status }]          — employee list (with optional status filter)
+['employees', 'detail', id]               — single employee
+['payroll', 'list', params]               — payroll records list
+['payroll', 'detail', id]                 — single payroll record + deductions
+['cash-advances', 'list', params]         — all cash advances
+['cash-advances', 'by-employee', employeeId]  — cash advances for a specific employee
+['settings']                               — system settings
+['audit-logs', params]                    — audit trail
+```
+
+### Optimistic Updates
+
+The following high-frequency write operations use optimistic updates for instant UI feedback:
+
+| Operation | Key Updated Optimistically |
+|---|---|
+| Clock-in | `['attendance', 'today']` — new entry appended |
+| Clock-out | `['attendance', 'today']` — matching entry `timeOut` set |
+| Create cash advance | `['cash-advances', 'list', *]` — new entry appended |
+| Add payroll deduction | `['payroll', 'detail', id]` — deduction appended, totals adjusted |
+
+All optimistic updates roll back on error and always invalidate the related queries on settle.
+
+### Cache Invalidation After Mutations
+
+| Mutation | Invalidates |
+|---|---|
+| Archive employee | `['employees', 'list']` |
+| Create / update employee | `['employees', 'list']`, `['employees', 'detail', id]` |
+| Generate payroll | `['payroll', 'list']` |
+| Finalize payroll | `['payroll', 'list']`, `['payroll', 'detail', id]` |
+| Update setting | `['settings']` |
+| Create / update cash advance | `['cash-advances']` |
+
+### API Client — Auto JWT Attachment
+
+The `fetchApi` utility in `apps/web/src/lib/api.ts` reads the JWT directly from `localStorage` (`zm_token` key) on every request. No token parameter is passed through component/hook call chains. React Query Devtools are available in development mode via `<ReactQueryDevtools initialIsOpen={false} />`.

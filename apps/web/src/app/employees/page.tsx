@@ -1,54 +1,52 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
-import { employeeApi } from '@/lib/api';
+import { useEmployees, useArchiveEmployee } from '@/lib/queries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Plus, Search, Archive } from 'lucide-react';
 
 export default function EmployeesPage() {
-  const { token, isAdmin } = useAuth();
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { isAdmin } = useAuth();
   const [search, setSearch] = useState('');
   const [showArchived, setShowArchived] = useState(false);
 
-  const loadEmployees = async () => {
-    if (!token) return;
-    setLoading(true);
-    try {
-      const res = await employeeApi.getAll(token, showArchived ? undefined : 'ACTIVE');
-      if (res.success) setEmployees(res.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [archiveTarget, setArchiveTarget] = useState<string | null>(null);
 
-  useEffect(() => { loadEmployees(); }, [token, showArchived]);
+  const { data: employees = [], isLoading: loading } = useEmployees(
+    showArchived ? undefined : 'ACTIVE',
+  );
+  const archiveMutation = useArchiveEmployee();
 
-  const filtered = employees.filter((emp) =>
+  const filtered = employees.filter((emp: any) =>
     emp.fullName.toLowerCase().includes(search.toLowerCase()) ||
     emp.position.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleArchive = async (id: string) => {
-    if (!token || !confirm('Are you sure you want to archive this employee?')) return;
-    try {
-      await employeeApi.archive(token, id);
-      loadEmployees();
-    } catch (err: any) {
-      alert(err.message);
-    }
+  const handleArchiveConfirm = () => {
+    if (!archiveTarget) return;
+    archiveMutation.mutate(archiveTarget, {
+      onSuccess: () => setArchiveTarget(null),
+      onError: () => setArchiveTarget(null),
+    });
   };
 
   return (
     <div className="space-y-6">
+      <ConfirmDialog
+        open={archiveTarget !== null}
+        onOpenChange={(open) => { if (!open) setArchiveTarget(null); }}
+        title="Archive Employee"
+        description="Are you sure you want to archive this employee? They will no longer appear in active lists."
+        confirmLabel="Archive"
+        onConfirm={handleArchiveConfirm}
+        isPending={archiveMutation.isPending}
+      />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Employees</h1>
@@ -60,6 +58,12 @@ export default function EmployeesPage() {
           </Link>
         )}
       </div>
+
+      {archiveMutation.isError && (
+        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
+          {(archiveMutation.error as any)?.message ?? 'Failed to archive employee.'}
+        </div>
+      )}
 
       <Card>
         <CardHeader className="pb-3">
@@ -117,7 +121,7 @@ export default function EmployeesPage() {
                               <Button variant="ghost" size="sm">Edit</Button>
                             </Link>
                             {emp.status === 'ACTIVE' && (
-                              <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleArchive(emp.id)}>
+                              <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setArchiveTarget(emp.id)}>
                                 Archive
                               </Button>
                             )}

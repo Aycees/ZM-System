@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '@/lib/auth-context';
-import { attendanceApi, employeeApi } from '@/lib/api';
+import React, { useState } from 'react';
+import { useEmployees, useAttendance, useClockIn, useClockOut } from '@/lib/queries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,66 +10,36 @@ import { Badge } from '@/components/ui/badge';
 import { Clock, LogIn, LogOut } from 'lucide-react';
 
 export default function AttendancePage() {
-  const { token } = useAuth();
-  const [attendance, setAttendance] = useState<any[]>([]);
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [dateFrom, setDateFrom] = useState(new Date().toISOString().split('T')[0]);
   const [dateTo, setDateTo] = useState(new Date().toISOString().split('T')[0]);
+  const [filterParams, setFilterParams] = useState({ dateFrom, dateTo });
   const [showForm, setShowForm] = useState(false);
   const [clockInForm, setClockInForm] = useState({ employeeId: '', date: new Date().toISOString().split('T')[0], timeIn: '' });
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
 
-  const loadData = async () => {
-    if (!token) return;
-    setLoading(true);
-    try {
-      const [attRes, empRes] = await Promise.all([
-        attendanceApi.getAll(token, { dateFrom, dateTo }),
-        employeeApi.getAll(token, 'ACTIVE'),
-      ]);
-      if (attRes.success) setAttendance(attRes.data);
-      if (empRes.success) setEmployees(empRes.data);
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
-  };
+  const { data: attendance = [], isLoading: loading } = useAttendance(filterParams);
+  const { data: employees = [] } = useEmployees('ACTIVE');
+  const clockInMutation = useClockIn();
+  const clockOutMutation = useClockOut();
 
-  useEffect(() => { loadData(); }, [token]);
+  const handleFilter = () => setFilterParams({ dateFrom, dateTo });
 
-  const handleFilter = () => loadData();
-
-  const handleClockIn = async (e: React.FormEvent) => {
+  const handleClockIn = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token) return;
-    setError('');
-    setSubmitting(true);
-    try {
-      const timeIn = new Date(`${clockInForm.date}T${clockInForm.timeIn}`).toISOString();
-      await attendanceApi.clockIn(token, {
-        employeeId: clockInForm.employeeId,
-        date: clockInForm.date,
-        timeIn,
-      });
-      setShowForm(false);
-      setClockInForm({ employeeId: '', date: new Date().toISOString().split('T')[0], timeIn: '' });
-      loadData();
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setSubmitting(false);
-    }
+    const timeIn = new Date(`${clockInForm.date}T${clockInForm.timeIn}`).toISOString();
+    clockInMutation.mutate(
+      { employeeId: clockInForm.employeeId, date: clockInForm.date, timeIn },
+      {
+        onSuccess: () => {
+          setShowForm(false);
+          setClockInForm({ employeeId: '', date: new Date().toISOString().split('T')[0], timeIn: '' });
+        },
+      },
+    );
   };
 
-  const handleClockOut = async (id: string) => {
-    if (!token) return;
+  const handleClockOut = (id: string) => {
     const timeOut = new Date().toISOString();
-    try {
-      await attendanceApi.clockOut(token, id, { timeOut });
-      loadData();
-    } catch (err: any) {
-      alert(err.message);
-    }
+    clockOutMutation.mutate({ id, data: { timeOut } });
   };
 
   return (
@@ -85,6 +54,12 @@ export default function AttendancePage() {
         </Button>
       </div>
 
+      {clockOutMutation.isError && (
+        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
+          {(clockOutMutation.error as any)?.message ?? 'Failed to clock out.'}
+        </div>
+      )}
+
       {/* Clock-In Form */}
       {showForm && (
         <Card className="animate-fade-in border-primary/20">
@@ -95,7 +70,7 @@ export default function AttendancePage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleClockIn} className="space-y-4">
-              {error && <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">{error}</div>}
+              {clockInMutation.error && <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">{(clockInMutation.error as any).message}</div>}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>Employee</Label>
@@ -121,7 +96,7 @@ export default function AttendancePage() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button type="submit" disabled={submitting}>{submitting ? 'Logging...' : 'Log Clock-In'}</Button>
+                <Button type="submit" disabled={clockInMutation.isPending}>{clockInMutation.isPending ? 'Logging...' : 'Log Clock-In'}</Button>
                 <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
               </div>
             </form>

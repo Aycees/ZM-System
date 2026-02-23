@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { payrollApi } from '@/lib/api';
+import { usePayrollRecords, useGeneratePayroll, useFinalizePayroll } from '@/lib/queries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,56 +10,54 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Wallet, Plus, Lock } from 'lucide-react';
 import Link from 'next/link';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 export default function PayrollPage() {
-  const { token, isAdmin } = useAuth();
-  const [records, setRecords] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { isAdmin } = useAuth();
   const [showGenerate, setShowGenerate] = useState(false);
   const [generateForm, setGenerateForm] = useState({ periodStart: '', periodEnd: '' });
-  const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
+  const [finalizeTarget, setFinalizeTarget] = useState<string | null>(null);
 
-  const loadData = async () => {
-    if (!token) return;
-    setLoading(true);
-    try {
-      const res = await payrollApi.getAll(token);
-      if (res.success) setRecords(res.data);
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
-  };
+  const { data: records = [], isLoading: loading } = usePayrollRecords();
+  const generateMutation = useGeneratePayroll();
+  const finalizeMutation = useFinalizePayroll();
 
-  useEffect(() => { loadData(); }, [token]);
-
-  const handleGenerate = async (e: React.FormEvent) => {
+  const handleGenerate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token) return;
-    setError(''); setMessage('');
-    setGenerating(true);
-    try {
-      const res: any = await payrollApi.generate(token, generateForm);
-      setMessage(res.message || 'Payroll generated');
-      setShowGenerate(false);
-      loadData();
-    } catch (err: any) {
-      setError(err.message);
-    } finally { setGenerating(false); }
+    generateMutation.mutate(generateForm, {
+      onSuccess: () => {
+        setShowGenerate(false);
+        setGenerateForm({ periodStart: '', periodEnd: '' });
+      },
+    });
   };
 
-  const handleFinalize = async (id: string) => {
-    if (!token || !confirm('Finalize this payroll? This will lock all attendance records for the period.')) return;
-    try {
-      await payrollApi.finalize(token, id);
-      loadData();
-    } catch (err: any) { alert(err.message); }
+  const handleFinalize = (id: string) => {
+    setFinalizeTarget(id);
+  };
+
+  const handleFinalizeConfirm = () => {
+    if (!finalizeTarget) return;
+    finalizeMutation.mutate(finalizeTarget, {
+      onSuccess: () => setFinalizeTarget(null),
+      onError: () => setFinalizeTarget(null),
+    });
   };
 
   if (!isAdmin) return <p className="text-muted-foreground">Access restricted to Admins.</p>;
 
   return (
     <div className="space-y-6">
+      <ConfirmDialog
+        open={finalizeTarget !== null}
+        onOpenChange={(open) => { if (!open) setFinalizeTarget(null); }}
+        title="Finalize Payroll"
+        description="This will lock all attendance records for the period and cannot be undone. Are you sure?"
+        confirmLabel="Finalize"
+        variant="default"
+        onConfirm={handleFinalizeConfirm}
+        isPending={finalizeMutation.isPending}
+      />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Payroll</h1>
@@ -68,14 +66,19 @@ export default function PayrollPage() {
         <Button onClick={() => setShowGenerate(!showGenerate)}><Plus className="h-4 w-4 mr-2" /> Generate Payroll</Button>
       </div>
 
-      {message && <div className="bg-emerald-50 text-emerald-700 text-sm p-3 rounded-lg">{message}</div>}
+      {generateMutation.isSuccess && <div className="bg-emerald-50 text-emerald-700 text-sm p-3 rounded-lg">Payroll generated successfully.</div>}
+      {finalizeMutation.isError && (
+        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
+          {(finalizeMutation.error as any)?.message ?? 'Failed to finalize payroll.'}
+        </div>
+      )}
 
       {showGenerate && (
         <Card className="animate-fade-in border-primary/20">
           <CardHeader className="pb-3"><CardTitle className="text-lg">Generate Payroll</CardTitle></CardHeader>
           <CardContent>
             <form onSubmit={handleGenerate} className="space-y-4">
-              {error && <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">{error}</div>}
+              {generateMutation.error && <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">{(generateMutation.error as any).message}</div>}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Period Start</Label>
@@ -87,7 +90,7 @@ export default function PayrollPage() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button type="submit" disabled={generating}>{generating ? 'Generating...' : 'Generate'}</Button>
+                <Button type="submit" disabled={generateMutation.isPending}>{generateMutation.isPending ? 'Generating...' : 'Generate'}</Button>
                 <Button type="button" variant="outline" onClick={() => setShowGenerate(false)}>Cancel</Button>
               </div>
             </form>

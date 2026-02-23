@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { cashAdvanceApi, employeeApi } from '@/lib/api';
+import { useCashAdvances, useCreateCashAdvance, useEmployees } from '@/lib/queries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,42 +11,25 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Receipt } from 'lucide-react';
 
 export default function CashAdvancesPage() {
-  const { token, isAdmin } = useAuth();
-  const [advances, setAdvances] = useState<any[]>([]);
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { isAdmin } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ employeeId: '', amount: '', description: '', dateGiven: new Date().toISOString().split('T')[0] });
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
 
-  const loadData = async () => {
-    if (!token) return;
-    setLoading(true);
-    try {
-      const [caRes, empRes] = await Promise.all([
-        cashAdvanceApi.getAll(token),
-        employeeApi.getAll(token, 'ACTIVE'),
-      ]);
-      if (caRes.success) setAdvances(caRes.data);
-      if (empRes.success) setEmployees(empRes.data);
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
-  };
+  const { data: advances = [], isLoading: loading } = useCashAdvances();
+  const { data: employees = [] } = useEmployees('ACTIVE');
+  const createMutation = useCreateCashAdvance();
 
-  useEffect(() => { loadData(); }, [token]);
-
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token) return;
-    setError(''); setSubmitting(true);
-    try {
-      await cashAdvanceApi.create(token, { ...form, amount: parseFloat(form.amount) });
-      setShowForm(false);
-      setForm({ employeeId: '', amount: '', description: '', dateGiven: new Date().toISOString().split('T')[0] });
-      loadData();
-    } catch (err: any) { setError(err.message); }
-    finally { setSubmitting(false); }
+    createMutation.mutate(
+      { ...form, amount: parseFloat(form.amount) },
+      {
+        onSuccess: () => {
+          setShowForm(false);
+          setForm({ employeeId: '', amount: '', description: '', dateGiven: new Date().toISOString().split('T')[0] });
+        },
+      },
+    );
   };
 
   if (!isAdmin) return <p className="text-muted-foreground">Access restricted to Admins.</p>;
@@ -66,7 +49,7 @@ export default function CashAdvancesPage() {
           <CardHeader className="pb-3"><CardTitle className="text-lg flex items-center gap-2"><Receipt className="h-5 w-5" /> New Cash Advance</CardTitle></CardHeader>
           <CardContent>
             <form onSubmit={handleCreate} className="space-y-4">
-              {error && <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">{error}</div>}
+              {createMutation.error && <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">{(createMutation.error as any).message}</div>}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Employee</Label>
@@ -92,7 +75,7 @@ export default function CashAdvancesPage() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button type="submit" disabled={submitting}>{submitting ? 'Recording...' : 'Record'}</Button>
+                <Button type="submit" disabled={createMutation.isPending}>{createMutation.isPending ? 'Recording...' : 'Record'}</Button>
                 <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
               </div>
             </form>
