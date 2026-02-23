@@ -11,14 +11,21 @@ export class EmployeeService {
     private auditLogService: AuditLogService,
   ) {}
 
-  async findAll(status?: EmployeeStatus) {
-    return this.prisma.employee.findMany({
+  async findAll(status?: EmployeeStatus, userRole?: string) {
+    const employees = await this.prisma.employee.findMany({
       where: status ? { status } : undefined,
       orderBy: { fullName: 'asc' },
     });
+
+    // Strip dailyRate for Manager role (field-level RBAC)
+    if (userRole === 'MANAGER') {
+      return employees.map(({ dailyRate, ...rest }) => rest);
+    }
+
+    return employees;
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, userRole?: string) {
     const employee = await this.prisma.employee.findUnique({
       where: { id },
       include: {
@@ -29,6 +36,13 @@ export class EmployeeService {
     if (!employee) {
       throw new NotFoundException('Employee not found');
     }
+
+    // Strip dailyRate for Manager role
+    if (userRole === 'MANAGER') {
+      const { dailyRate, ...rest } = employee;
+      return rest;
+    }
+
     return employee;
   }
 
@@ -50,12 +64,12 @@ export class EmployeeService {
     const existing = await this.findOne(id);
 
     // Audit log for daily rate changes
-    if (dto.dailyRate !== undefined && Number(existing.dailyRate) !== dto.dailyRate) {
+    if (dto.dailyRate !== undefined && Number((existing as any).dailyRate) !== dto.dailyRate) {
       await this.auditLogService.log({
         entityType: 'Employee',
         entityId: id,
         action: 'UPDATE_DAILY_RATE',
-        oldValue: { dailyRate: Number(existing.dailyRate) },
+        oldValue: { dailyRate: Number((existing as any).dailyRate) },
         newValue: { dailyRate: dto.dailyRate },
         performedBy,
       });
@@ -96,18 +110,19 @@ export class EmployeeService {
   async archive(id: string, performedBy: string) {
     const existing = await this.findOne(id);
 
-    // Check if employee has any finalized payroll records
-    const hasPayroll = await this.prisma.salaryRecord.findFirst({
-      where: { employeeId: id },
-    });
+    // Check if employee has any payroll or attendance records
+    const [hasPayroll, hasAttendance] = await Promise.all([
+      this.prisma.salaryRecord.findFirst({ where: { employeeId: id } }),
+      this.prisma.attendance.findFirst({ where: { employeeId: id } }),
+    ]);
 
-    if (hasPayroll) {
-      // Cannot delete, only archive
+    if (hasPayroll || hasAttendance) {
+      // Cannot delete, only archive — audit log this
       await this.auditLogService.log({
         entityType: 'Employee',
         entityId: id,
         action: 'ARCHIVE',
-        oldValue: { status: existing.status },
+        oldValue: { status: (existing as any).status },
         newValue: { status: 'ARCHIVED' },
         performedBy,
       });

@@ -30,6 +30,16 @@ export function useGeneratePayroll() {
   });
 }
 
+export function useDeletePayroll() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => payrollApi.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['payroll', 'list'] });
+    },
+  });
+}
+
 export function useFinalizePayroll() {
   const qc = useQueryClient();
   return useMutation({
@@ -45,31 +55,65 @@ export function useAddDeduction(payrollId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: any) => payrollApi.addDeduction(payrollId!, data),
-    onMutate: async (data) => {
-      await qc.cancelQueries({ queryKey: ['payroll', 'detail', payrollId] });
-      const prev = qc.getQueryData<any>(['payroll', 'detail', payrollId]);
-      const optimisticDeduction = {
-        id: `optimistic-${Date.now()}`,
-        type: data.type,
-        description: data.description,
-        amount: data.amount,
-      };
-      qc.setQueryData<any>(['payroll', 'detail', payrollId], (old: any) => {
-        if (!old) return old;
-        return {
-          ...old,
-          deductionItems: [...(old.deductionItems ?? []), optimisticDeduction],
-          deductions: (Number(old.deductions) + Number(data.amount)).toString(),
-          netPay: (Number(old.netPay) - Number(data.amount)).toString(),
-        };
-      });
-      return { prev };
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['payroll', 'detail', payrollId] });
+      qc.invalidateQueries({ queryKey: ['payroll', 'list'] });
     },
-    onError: (_err, _vars, ctx) => {
-      if (ctx?.prev !== undefined) {
-        qc.setQueryData(['payroll', 'detail', payrollId], ctx.prev);
-      }
+  });
+}
+
+export function useUpdateDeduction(payrollId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ deductionId, data }: { deductionId: string; data: any }) =>
+      payrollApi.updateDeduction(payrollId!, deductionId, data),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['payroll', 'detail', payrollId] });
+      qc.invalidateQueries({ queryKey: ['payroll', 'list'] });
     },
+  });
+}
+
+export function useDeleteDeduction(payrollId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (deductionId: string) =>
+      payrollApi.deleteDeduction(payrollId!, deductionId),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['payroll', 'detail', payrollId] });
+      qc.invalidateQueries({ queryKey: ['payroll', 'list'] });
+    },
+  });
+}
+
+export function useAddIncentive(payrollId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => payrollApi.addIncentive(payrollId!, data),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['payroll', 'detail', payrollId] });
+      qc.invalidateQueries({ queryKey: ['payroll', 'list'] });
+    },
+  });
+}
+
+export function useUpdateIncentive(payrollId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ incentiveId, data }: { incentiveId: string; data: any }) =>
+      payrollApi.updateIncentive(payrollId!, incentiveId, data),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['payroll', 'detail', payrollId] });
+      qc.invalidateQueries({ queryKey: ['payroll', 'list'] });
+    },
+  });
+}
+
+export function useDeleteIncentive(payrollId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (incentiveId: string) =>
+      payrollApi.deleteIncentive(payrollId!, incentiveId),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ['payroll', 'detail', payrollId] });
       qc.invalidateQueries({ queryKey: ['payroll', 'list'] });

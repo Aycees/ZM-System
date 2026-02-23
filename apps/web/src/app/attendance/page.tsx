@@ -1,30 +1,38 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useEmployees, useAttendance, useClockIn, useClockOut } from '@/lib/queries';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/lib/auth-context';
+import { useEmployees, useAttendance, useClockIn, useClockOut, useUpdateAttendance, useDeleteAttendance } from '@/lib/queries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Clock, LogIn, LogOut } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Clock, LogIn, LogOut, Pencil, Trash2 } from 'lucide-react';
 
 export default function AttendancePage() {
+  const { isAdmin } = useAuth();
   const [dateFrom, setDateFrom] = useState(new Date().toISOString().split('T')[0]);
   const [dateTo, setDateTo] = useState(new Date().toISOString().split('T')[0]);
-  const [filterParams, setFilterParams] = useState({ dateFrom, dateTo });
   const [showForm, setShowForm] = useState(false);
   const [clockInForm, setClockInForm] = useState({ employeeId: '', date: new Date().toISOString().split('T')[0], timeIn: '' });
+  const [clockingOutId, setClockingOutId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [editTarget, setEditTarget] = useState<any>(null);
+  const [editForm, setEditForm] = useState({ timeIn: '', timeOut: '' });
 
-  const { data: attendance = [], isLoading: loading } = useAttendance(filterParams);
+  // Auto-reload when filters change
+  const { data: attendance = [], isLoading: loading } = useAttendance({ dateFrom, dateTo });
   const { data: employees = [] } = useEmployees('ACTIVE');
   const clockInMutation = useClockIn();
   const clockOutMutation = useClockOut();
-
-  const handleFilter = () => setFilterParams({ dateFrom, dateTo });
+  const updateMutation = useUpdateAttendance();
+  const deleteMutation = useDeleteAttendance();
 
   const handleClockIn = (e: React.FormEvent) => {
     e.preventDefault();
+    // TIMEZONE FIX: Send date as plain YYYY-MM-DD string, construct time in local format
     const timeIn = new Date(`${clockInForm.date}T${clockInForm.timeIn}`).toISOString();
     clockInMutation.mutate(
       { employeeId: clockInForm.employeeId, date: clockInForm.date, timeIn },
@@ -38,12 +46,51 @@ export default function AttendancePage() {
   };
 
   const handleClockOut = (id: string) => {
+    setClockingOutId(id);
     const timeOut = new Date().toISOString();
-    clockOutMutation.mutate({ id, data: { timeOut } });
+    clockOutMutation.mutate({ id, data: { timeOut } }, {
+      onSettled: () => setClockingOutId(null),
+    });
+  };
+
+  const handleEdit = (att: any) => {
+    setEditTarget(att);
+    setEditForm({
+      timeIn: att.timeIn ? new Date(att.timeIn).toTimeString().slice(0, 5) : '',
+      timeOut: att.timeOut ? new Date(att.timeOut).toTimeString().slice(0, 5) : '',
+    });
+  };
+
+  const handleEditSave = () => {
+    if (!editTarget) return;
+    const dateStr = new Date(editTarget.date).toISOString().split('T')[0];
+    const data: any = {};
+    if (editForm.timeIn) data.timeIn = new Date(`${dateStr}T${editForm.timeIn}`).toISOString();
+    if (editForm.timeOut) data.timeOut = new Date(`${dateStr}T${editForm.timeOut}`).toISOString();
+    updateMutation.mutate({ id: editTarget.id, data }, {
+      onSuccess: () => setEditTarget(null),
+    });
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!deleteTarget) return;
+    deleteMutation.mutate(deleteTarget, {
+      onSuccess: () => setDeleteTarget(null),
+    });
   };
 
   return (
     <div className="space-y-6">
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+        title="Delete Attendance Record"
+        description="Are you sure you want to delete this attendance record? This action cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={handleDeleteConfirm}
+        isPending={deleteMutation.isPending}
+      />
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Attendance</h1>
@@ -54,9 +101,9 @@ export default function AttendancePage() {
         </Button>
       </div>
 
-      {clockOutMutation.isError && (
+      {(clockOutMutation.isError || deleteMutation.isError || updateMutation.isError) && (
         <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
-          {(clockOutMutation.error as any)?.message ?? 'Failed to clock out.'}
+          {(clockOutMutation.error as any)?.message || (deleteMutation.error as any)?.message || (updateMutation.error as any)?.message || 'An error occurred.'}
         </div>
       )}
 
@@ -95,7 +142,7 @@ export default function AttendancePage() {
                   <Input type="time" value={clockInForm.timeIn} onChange={(e) => setClockInForm({ ...clockInForm, timeIn: e.target.value })} required />
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button type="submit" disabled={clockInMutation.isPending}>{clockInMutation.isPending ? 'Logging...' : 'Log Clock-In'}</Button>
                 <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
               </div>
@@ -104,19 +151,43 @@ export default function AttendancePage() {
         </Card>
       )}
 
-      {/* Filter */}
+      {/* Edit Dialog */}
+      {editTarget && (
+        <Card className="animate-fade-in border-primary/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Edit Attendance — {editTarget.employee?.fullName}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div className="space-y-2">
+                <Label>Time In</Label>
+                <Input type="time" value={editForm.timeIn} onChange={(e) => setEditForm({ ...editForm, timeIn: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Time Out</Label>
+                <Input type="time" value={editForm.timeOut} onChange={(e) => setEditForm({ ...editForm, timeOut: e.target.value })} />
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button onClick={handleEditSave} disabled={updateMutation.isPending}>{updateMutation.isPending ? 'Saving...' : 'Save Changes'}</Button>
+              <Button variant="outline" onClick={() => setEditTarget(null)}>Cancel</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Records — Auto-filters via dateFrom/dateTo state change */}
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row gap-3 items-end">
-            <div className="space-y-1 flex-1">
+          <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-row sm:items-end">
+            <div className="space-y-1 sm:flex-1">
               <Label className="text-xs">From</Label>
-              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-full" />
             </div>
-            <div className="space-y-1 flex-1">
+            <div className="space-y-1 sm:flex-1">
               <Label className="text-xs">To</Label>
-              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-full" />
             </div>
-            <Button variant="outline" onClick={handleFilter}>Filter</Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -125,8 +196,8 @@ export default function AttendancePage() {
           ) : attendance.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">No attendance records for this period.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <table className="w-full text-sm min-w-[700px]">
                 <thead>
                   <tr className="border-b text-muted-foreground">
                     <th className="text-left py-2.5 px-3 font-medium">Employee</th>
@@ -152,12 +223,30 @@ export default function AttendancePage() {
                         </Badge>
                       </td>
                       <td className="py-2.5 px-3">
-                        {!att.timeOut && !att.locked && (
-                          <Button variant="outline" size="sm" onClick={() => handleClockOut(att.id)}>
-                            <LogOut className="h-3.5 w-3.5 mr-1" /> Clock Out
-                          </Button>
-                        )}
-                        {att.locked && <span className="text-xs text-muted-foreground">🔒 Locked</span>}
+                        <div className="flex gap-1 flex-wrap">
+                          {!att.timeOut && !att.locked && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleClockOut(att.id)}
+                              disabled={clockingOutId === att.id}
+                            >
+                              <LogOut className="h-3.5 w-3.5 mr-1" />
+                              {clockingOutId === att.id ? 'Clocking Out…' : 'Clock Out'}
+                            </Button>
+                          )}
+                          {isAdmin && !att.locked && (
+                            <>
+                              <Button variant="ghost" size="sm" onClick={() => handleEdit(att)}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteTarget(att.id)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </>
+                          )}
+                          {att.locked && <span className="text-xs text-muted-foreground">🔒 Locked</span>}
+                        </div>
                       </td>
                     </tr>
                   ))}

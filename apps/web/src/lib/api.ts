@@ -84,6 +84,8 @@ export const attendanceApi = {
     fetchApi(`/attendance/${id}/clock-out`, { method: 'PATCH', body: JSON.stringify(data) }),
   update: (id: string, data: any) =>
     fetchApi(`/attendance/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id: string) =>
+    fetchApi(`/attendance/${id}`, { method: 'DELETE' }),
 };
 
 // --- Payroll ---
@@ -96,8 +98,20 @@ export const payrollApi = {
     fetchApi<{ success: boolean; data: any }>(`/payroll/${id}`),
   generate: (data: any) =>
     fetchApi('/payroll/generate', { method: 'POST', body: JSON.stringify(data) }),
+  delete: (id: string) =>
+    fetchApi(`/payroll/${id}`, { method: 'DELETE' }),
   addDeduction: (id: string, data: any) =>
     fetchApi(`/payroll/${id}/deductions`, { method: 'POST', body: JSON.stringify(data) }),
+  updateDeduction: (id: string, deductionId: string, data: any) =>
+    fetchApi(`/payroll/${id}/deductions/${deductionId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteDeduction: (id: string, deductionId: string) =>
+    fetchApi(`/payroll/${id}/deductions/${deductionId}`, { method: 'DELETE' }),
+  addIncentive: (id: string, data: any) =>
+    fetchApi(`/payroll/${id}/incentives`, { method: 'POST', body: JSON.stringify(data) }),
+  updateIncentive: (id: string, incentiveId: string, data: any) =>
+    fetchApi(`/payroll/${id}/incentives/${incentiveId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteIncentive: (id: string, incentiveId: string) =>
+    fetchApi(`/payroll/${id}/incentives/${incentiveId}`, { method: 'DELETE' }),
   finalize: (id: string) =>
     fetchApi(`/payroll/${id}/finalize`, { method: 'PATCH' }),
 };

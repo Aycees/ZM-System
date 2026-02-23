@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Res, UseGuards, BadRequestException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard, Roles } from '../auth/roles.guard';
 import { ReportsService } from './reports.service';
@@ -17,10 +17,14 @@ export class ReportsController {
     @Query('periodEnd') periodEnd: string,
     @Res() res: Response,
   ) {
+    if (!periodStart || !periodEnd) {
+      throw new BadRequestException('periodStart and periodEnd query parameters are required');
+    }
     const buffer = await this.reportsService.generatePayrollReport(periodStart, periodEnd);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename=payroll_report_${periodStart}_${periodEnd}.xlsx`);
-    res.send(buffer);
+    res.setHeader('Content-Length', buffer.length);
+    res.end(buffer);
   }
 
   @Get('attendance')
@@ -30,9 +34,13 @@ export class ReportsController {
     @Query('dateTo') dateTo: string,
     @Res() res: Response,
   ) {
+    if (!dateFrom || !dateTo) {
+      throw new BadRequestException('dateFrom and dateTo query parameters are required');
+    }
     const buffer = await this.reportsService.generateAttendanceReport(dateFrom, dateTo);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename=attendance_report_${dateFrom}_${dateTo}.xlsx`);
-    res.send(buffer);
+    res.setHeader('Content-Length', buffer.length);
+    res.end(buffer);
   }
 }

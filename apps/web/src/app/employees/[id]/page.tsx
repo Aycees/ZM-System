@@ -30,7 +30,7 @@ export default function EmployeeDetailPage() {
         contactNumber: employee.contactNumber,
         emergencyContact: employee.emergencyContact,
         position: employee.position,
-        dailyRate: Number(employee.dailyRate),
+        dailyRate: employee.dailyRate ? Number(employee.dailyRate) : undefined,
         hireDate: employee.hireDate?.split('T')[0],
       });
     }
@@ -122,14 +122,17 @@ export default function EmployeeDetailPage() {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label>Daily Rate</Label>
-              {editing ? (
-                <Input type="number" step="0.01" value={form.dailyRate} onChange={(e) => setForm({ ...form, dailyRate: parseFloat(e.target.value) })} />
-              ) : (
-                <p className="text-sm font-medium">₱{Number(employee.dailyRate).toLocaleString()}</p>
-              )}
-            </div>
+            {/* Only show Daily Rate for Admin */}
+            {isAdmin && (
+              <div className="space-y-2">
+                <Label>Daily Rate</Label>
+                {editing ? (
+                  <Input type="number" step="0.01" value={form.dailyRate} onChange={(e) => setForm({ ...form, dailyRate: parseFloat(e.target.value) })} />
+                ) : (
+                  <p className="text-sm font-medium">₱{Number(employee.dailyRate).toLocaleString()}</p>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label>Date of Hire</Label>
@@ -142,7 +145,7 @@ export default function EmployeeDetailPage() {
           </div>
 
           {editing && (
-            <div className="flex gap-3 mt-6">
+            <div className="flex flex-col sm:flex-row gap-3 mt-6">
               <Button onClick={handleSave} disabled={updateEmployee.isPending}>
                 <Save className="h-4 w-4 mr-2" /> {updateEmployee.isPending ? 'Saving...' : 'Save Changes'}
               </Button>
@@ -159,8 +162,8 @@ export default function EmployeeDetailPage() {
             <CardTitle className="text-lg">Recent Attendance</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <table className="w-full text-sm min-w-[500px]">
                 <thead>
                   <tr className="border-b text-muted-foreground">
                     <th className="text-left py-2 px-3 font-medium">Date</th>

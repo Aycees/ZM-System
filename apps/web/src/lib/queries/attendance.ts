@@ -27,31 +27,6 @@ export function useClockIn() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: any) => attendanceApi.clockIn(data),
-    onMutate: async (data) => {
-      await qc.cancelQueries({ queryKey: ['attendance', 'today'] });
-      const prev = qc.getQueryData<any[]>(['attendance', 'today']);
-      const optimisticEntry = {
-        id: `optimistic-${Date.now()}`,
-        employeeId: data.employeeId,
-        date: data.date,
-        timeIn: data.timeIn,
-        timeOut: null,
-        totalHours: null,
-        status: 'PRESENT',
-        locked: false,
-        employee: { fullName: '...', position: '' },
-      };
-      qc.setQueryData<any[]>(['attendance', 'today'], (old = []) => [
-        ...old,
-        optimisticEntry,
-      ]);
-      return { prev };
-    },
-    onError: (_err, _vars, ctx) => {
-      if (ctx?.prev !== undefined) {
-        qc.setQueryData(['attendance', 'today'], ctx.prev);
-      }
-    },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ['attendance', 'today'] });
       qc.invalidateQueries({ queryKey: ['attendance', 'list'] });
@@ -64,24 +39,30 @@ export function useClockOut() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) =>
       attendanceApi.clockOut(id, data),
-    onMutate: async ({ id, data }) => {
-      await qc.cancelQueries({ queryKey: ['attendance', 'today'] });
-      const prev = qc.getQueryData<any[]>(['attendance', 'today']);
-      qc.setQueryData<any[]>(['attendance', 'today'], (old = []) =>
-        old.map((a) =>
-          a.id === id ? { ...a, timeOut: data.timeOut } : a,
-        ),
-      );
-      return { prev };
-    },
-    onError: (_err, _vars, ctx) => {
-      if (ctx?.prev !== undefined) {
-        qc.setQueryData(['attendance', 'today'], ctx.prev);
-      }
-    },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ['attendance', 'today'] });
       qc.invalidateQueries({ queryKey: ['attendance', 'list'] });
+    },
+  });
+}
+
+export function useUpdateAttendance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      attendanceApi.update(id, data),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['attendance'] });
+    },
+  });
+}
+
+export function useDeleteAttendance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => attendanceApi.delete(id),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['attendance'] });
     },
   });
 }

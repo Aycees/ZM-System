@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Users, Clock, Wallet, Settings, FileText,
-  LogOut, Menu, X, HelpCircle, Receipt,
+  LogOut, Menu, X, HelpCircle, Receipt, Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -18,6 +18,7 @@ const navItems = [
   { href: '/payroll', label: 'Payroll', icon: Wallet, roles: ['ADMIN'] },
   { href: '/cash-advances', label: 'Cash Advances', icon: Receipt, roles: ['ADMIN'] },
   { href: '/reports', label: 'Reports', icon: FileText, roles: ['ADMIN', 'MANAGER'] },
+  { href: '/audit-logs', label: 'Audit Logs', icon: Shield, roles: ['ADMIN'] },
   { href: '/settings', label: 'Settings', icon: Settings, roles: ['ADMIN'] },
   { href: '/help', label: 'Help Guide', icon: HelpCircle, roles: ['ADMIN', 'MANAGER'] },
 ];
