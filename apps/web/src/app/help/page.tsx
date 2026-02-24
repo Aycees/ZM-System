@@ -3,7 +3,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { HelpCircle, Users, Clock, Wallet, Settings, FileText, Receipt, Shield } from 'lucide-react';
+import { HelpCircle, Users, Clock, Wallet, Settings, FileText, Receipt, Shield, LayoutDashboard } from 'lucide-react';
 
 const sections = [
   {
@@ -13,6 +13,17 @@ const sections = [
       'Go to the login page and enter your username and password.',
       'Your Admin will provide your credentials.',
       'After logging in, you will be taken to the Dashboard.',
+    ],
+  },
+  {
+    icon: LayoutDashboard,
+    title: 'Using the Dashboard',
+    content: [
+      'After logging in, you will land on the Dashboard which shows a live overview for today.',
+      'The four stat cards display: Total Employees, Present Today, Overtime Today, and the current payroll period total.',
+      'The "Today\'s Attendance" table lists every attendance record for the current Philippine date. It updates automatically when new attendance is logged.',
+      'All "today" data is calculated using Philippine Time (Asia/Manila, UTC+8), so the dashboard always reflects the correct date in the Philippines regardless of the server\'s timezone.',
+      'A real-time Philippine Time clock is displayed in the sidebar on desktop, and at the top of the screen on mobile. It shows the current date and time in the Philippines and ticks every second — use it to verify the local time when logging attendance.',
     ],
   },
   {
@@ -37,6 +48,7 @@ const sections = [
       'When the employee is done for the day, click the "Clock Out" button next to their name in the attendance table.',
       'The system will automatically calculate total hours and flag the status as Full Day (8 hours), Half Day (≤4 hours), or Overtime (>8 hours).',
       'Note: You cannot log attendance twice for the same employee on the same day.',
+      'Tip: All attendance dates are stored in Philippine Time (Asia/Manila). Use the real-time clock in the sidebar to confirm the correct local date before logging.',
     ],
   },
   {

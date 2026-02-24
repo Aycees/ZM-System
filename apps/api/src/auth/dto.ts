@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsEnum, IsOptional, MinLength } from 'class-validator';
+import { IsString, IsNotEmpty, IsEnum, MinLength } from 'class-validator';
 import { UserRole } from '@zm/db';
 
 export class LoginDto {
@@ -24,8 +24,4 @@ export class SignupDto {
 
   @IsEnum(UserRole)
   role: UserRole;
-
-  @IsOptional()
-  @IsString()
-  employeeId?: string;
 }

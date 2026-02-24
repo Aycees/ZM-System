@@ -36,30 +36,13 @@ export class AuthService {
     };
   }
 
-  async signup(username: string, password: string, role: UserRole, employeeId?: string) {
+  async signup(username: string, password: string, role: UserRole) {
     const existingUser = await this.prisma.user.findUnique({
       where: { username },
     });
 
     if (existingUser) {
       throw new ConflictException('Username already exists');
-    }
-
-    // If linking to an employee, verify the employee exists
-    if (employeeId) {
-      const employee = await this.prisma.employee.findUnique({
-        where: { id: employeeId },
-      });
-      if (!employee) {
-        throw new UnauthorizedException('Employee not found');
-      }
-      // Check if employee is already linked to a user
-      const existingLink = await this.prisma.user.findUnique({
-        where: { employeeId },
-      });
-      if (existingLink) {
-        throw new ConflictException('Employee already linked to a user account');
-      }
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -69,7 +52,7 @@ export class AuthService {
         username,
         passwordHash: hashedPassword,
         role,
-        employeeId: role === 'MANAGER' ? employeeId : null,
+        employeeId: null,
       },
     });
 

@@ -1,29 +1,24 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import { authApi } from '@/lib/api';
-import { useEmployees } from '@/lib/queries';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 export default function SignupPage() {
-  const router = useRouter();
-  const [form, setForm] = useState({ username: '', password: '', confirmPassword: '', role: 'MANAGER', employeeId: '' });
+  const [form, setForm] = useState({ username: '', password: '', confirmPassword: '', role: 'MANAGER' });
   const [validationError, setValidationError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const { data: employees = [] } = useEmployees();
-
   const signupMutation = useMutation({
-    mutationFn: (data: { username: string; password: string; role: string; employeeId?: string }) =>
+    mutationFn: (data: { username: string; password: string; role: string }) =>
       authApi.signup(data),
     onSuccess: () => {
       setSuccess('Account created successfully!');
-      setForm({ username: '', password: '', confirmPassword: '', role: 'MANAGER', employeeId: '' });
+      setForm({ username: '', password: '', confirmPassword: '', role: 'MANAGER' });
     },
   });
 
@@ -44,7 +39,6 @@ export default function SignupPage() {
       username: form.username,
       password: form.password,
       role: form.role,
-      employeeId: form.role === 'MANAGER' ? form.employeeId || undefined : undefined,
     });
   };
 
@@ -102,23 +96,6 @@ export default function SignupPage() {
                   <option value="ADMIN">Admin</option>
                 </select>
               </div>
-
-              {form.role === 'MANAGER' && (
-                <div className="space-y-2">
-                  <Label htmlFor="employeeId">Link to Employee (Optional)</Label>
-                  <select
-                    id="employeeId"
-                    value={form.employeeId}
-                    onChange={(e) => setForm({ ...form, employeeId: e.target.value })}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <option value="">-- Select Employee --</option>
-                    {employees.map((emp: any) => (
-                      <option key={emp.id} value={emp.id}>{emp.fullName} — {emp.position}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
 
               <Button type="submit" className="w-full" disabled={signupMutation.isPending}>
                 {signupMutation.isPending ? 'Creating...' : 'Create Account'}
