@@ -39,11 +39,18 @@ export class AttendanceService {
     return { data, total, page, pageSize };
   }
 
-  async getToday() {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  /** Returns [startOfToday, startOfTomorrow] anchored to Philippine Time (UTC+8). */
+  private getPHTTodayRange(): [Date, Date] {
+    const phtNow = new Date(Date.now() + 8 * 60 * 60 * 1000);
+    const dateStr = phtNow.toISOString().split('T')[0]; // 'YYYY-MM-DD' in PHT
+    const today = new Date(dateStr + 'T00:00:00.000Z');
     const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    return [today, tomorrow];
+  }
+
+  async getToday() {
+    const [today, tomorrow] = this.getPHTTodayRange();
 
     return this.prisma.attendance.findMany({
       where: {
@@ -263,10 +270,7 @@ export class AttendanceService {
   }
 
   async getTodayStats() {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const [today, tomorrow] = this.getPHTTodayRange();
 
     const [presentToday, overtimeToday] = await Promise.all([
       this.prisma.attendance.count({
