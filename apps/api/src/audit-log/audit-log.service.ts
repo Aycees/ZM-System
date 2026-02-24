@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 interface CreateAuditLogDto {
@@ -10,9 +10,33 @@ interface CreateAuditLogDto {
   performedBy: string;
 }
 
+const RETENTION_DAYS = 90;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 @Injectable()
-export class AuditLogService {
+export class AuditLogService implements OnModuleInit {
+  private readonly logger = new Logger(AuditLogService.name);
+
   constructor(private prisma: PrismaService) {}
+
+  onModuleInit() {
+    this.deleteOldLogs();
+    setInterval(() => this.deleteOldLogs(), MS_PER_DAY);
+  }
+
+  private async deleteOldLogs() {
+    const cutoff = new Date(Date.now() - RETENTION_DAYS * MS_PER_DAY);
+    try {
+      const { count } = await this.prisma.auditLog.deleteMany({
+        where: { timestamp: { lt: cutoff } },
+      });
+      if (count > 0) {
+        this.logger.log(`Audit log cleanup: deleted ${count} records older than ${RETENTION_DAYS} days`);
+      }
+    } catch (err) {
+      this.logger.error('Audit log cleanup failed', err);
+    }
+  }
 
   async log(dto: CreateAuditLogDto) {
     return this.prisma.auditLog.create({

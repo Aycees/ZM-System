@@ -267,6 +267,7 @@ ZM-systems/
 2. Server validates credentials, returns JWT token (24h expiry)
 3. Token stored in `localStorage` and sent as `Bearer` in `Authorization` header
 4. All protected routes use `AuthGuard` (Passport JWT) + `RolesGuard` (RBAC)
+5. Expired tokens are rejected by the API with `401 Unauthorized`; the user must log in again
 
 ### Roles
 | Role    | Description                                                    |
@@ -300,6 +301,11 @@ ZM-systems/
 - ✅ Prevents generation if attendance has missing clock-outs
 - ✅ Finalizing locks all attendance in that period
 - ✅ Cash advance deductions auto-reduce remaining balance
+
+### Audit Logs
+- ✅ All create, update, delete, clock-in, clock-out, finalize, and archive actions are logged
+- ✅ Logs older than **90 days** are automatically deleted at server startup and every 24 hours thereafter
+- ✅ Cleanup runs in-process via `setInterval` in `AuditLogService.onModuleInit` — no external scheduler needed
 
 ---
 
