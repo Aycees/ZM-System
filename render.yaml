@@ -9,11 +9,13 @@ services:
     preDeployCommand: pnpm --filter=@zm/db exec prisma migrate deploy
     startCommand: node apps/api/dist/main
 
-    healthCheckPath: /api/auth/login
+    healthCheckPath: /api/health
 
     envVars:
       - key: NODE_VERSION
         value: 20
+      - key: PNPM_VERSION
+        value: 9.15.4
       - key: PORT
         value: 3001
       - key: DATABASE_URL
