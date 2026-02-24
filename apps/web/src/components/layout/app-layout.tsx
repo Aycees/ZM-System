@@ -10,6 +10,7 @@ import {
   LogOut, Menu, X, HelpCircle, Receipt, Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PhilippineClock } from '@/components/ui/philippine-clock';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'MANAGER'] },
@@ -43,6 +44,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
           <span className="font-semibold text-sm">ZM Systems</span>
         </div>
+        <div className="ml-auto pr-1">
+          <PhilippineClock compact />
+        </div>
       </header>
 
       {/* Sidebar overlay (mobile) */}
@@ -71,6 +75,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <h1 className="text-sm font-bold tracking-tight">ZM Systems</h1>
               <p className="text-[10px] text-muted-foreground">Employee Management</p>
             </div>
+          </div>
+
+          {/* Philippine Time clock */}
+          <div className="px-5 py-3 border-b">
+            <PhilippineClock />
           </div>
 
           {/* Nav items */}
