@@ -1,4 +1,5 @@
-import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 
 interface CreateAuditLogDto {
@@ -14,17 +15,13 @@ const RETENTION_DAYS = 90;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 @Injectable()
-export class AuditLogService implements OnModuleInit {
+export class AuditLogService {
   private readonly logger = new Logger(AuditLogService.name);
 
   constructor(private prisma: PrismaService) {}
 
-  onModuleInit() {
-    this.deleteOldLogs();
-    setInterval(() => this.deleteOldLogs(), MS_PER_DAY);
-  }
-
-  private async deleteOldLogs() {
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async deleteOldLogs() {
     const cutoff = new Date(Date.now() - RETENTION_DAYS * MS_PER_DAY);
     try {
       const { count } = await this.prisma.auditLog.deleteMany({

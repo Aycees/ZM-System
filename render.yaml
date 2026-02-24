@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: zm-api
+    runtime: node
+    region: oregon
+    plan: free
+
+    buildCommand: pnpm install --frozen-lockfile && pnpm build --filter=@zm/db... --filter=@zm/api...
+    preDeployCommand: pnpm --filter=@zm/db exec prisma migrate deploy
+    startCommand: node apps/api/dist/main
+
+    healthCheckPath: /api/auth/login
+
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
