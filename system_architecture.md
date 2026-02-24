@@ -27,11 +27,12 @@
 ZM Systems is a business management platform designed for a Coca-Cola distributor family business. The current subsystem focuses on **Employee Management** with the following core capabilities:
 
 - **Employee Data Management** — Centralized CRUD with soft-delete (archive)
-- **Attendance Tracking** — Manual clock-in/out with automatic hour calculation
+- **Attendance Tracking** — Manual clock-in/out with automatic hour calculation; all "today" queries use Philippine Time (Asia/Manila, UTC+8)
 - **Automated Payroll** — Salary calculation with daily rate, overtime, and deductions
 - **Cash Advance Ledger** — Running balance tracking per employee
 - **Report Export** — Excel reports for attendance and payroll
 - **Role-Based Access Control** — Admin (full access) and Manager (limited access)
+- **Real-Time Philippine Time Clock** — Live date/time display (Asia/Manila) on every protected page
 
 ---
 
@@ -172,7 +173,7 @@ ZM-systems/
 ### Key Constraints
 
 - **`attendance`**: Unique on `(employee_id, date)` — prevents duplicate logs
-- **`users.employee_id`**: Unique — one user per employee
+- **`users.employee_id`**: Unique — one user per employee (legacy field; all new accounts store `null`)
 - **`settings.key`**: Unique — one value per setting key
 - Decimal fields use `Decimal(10,2)` for currency, `Decimal(5,2)` for hours
 
@@ -199,7 +200,7 @@ ZM-systems/
 | Method | Endpoint                      | Access        | Description         |
 |--------|-------------------------------|---------------|---------------------|
 | GET    | `/api/attendance`             | Admin, Manager| List (with filters) |
-| GET    | `/api/attendance/today`       | Admin, Manager| Today's attendance  |
+| GET    | `/api/attendance/today`       | Admin, Manager| Today's attendance (date resolved in PH Time, UTC+8) |
 | POST   | `/api/attendance`             | Admin, Manager| Log clock-in        |
 | PATCH  | `/api/attendance/:id/clock-out` | Admin, Manager | Log clock-out     |
 | PATCH  | `/api/attendance/:id`         | Admin         | Edit (audit-logged) |
@@ -243,7 +244,7 @@ ZM-systems/
 |-------------------|------------------|------------------------------------------|
 | `/login`           | Public           | Login page                               |
 | `/coca-cola`       | Public (hidden)  | Signup page for Admin/Manager             |
-| `/dashboard`       | Admin, Manager   | Stats cards + today's attendance table    |
+| `/dashboard`       | Admin, Manager   | Stats cards + today's attendance table; real-time PH clock in sidebar/header |
 | `/employees`       | Admin, Manager   | Employee list with search/filter          |
 | `/employees/new`   | Admin            | Add employee form                        |
 | `/employees/[id]`  | Admin, Manager   | View/edit employee + recent attendance    |
@@ -254,6 +255,8 @@ ZM-systems/
 | `/settings`        | Admin            | Configure OT/on-call rates               |
 | `/reports`         | Admin, Manager   | Export Excel reports                      |
 | `/help`            | Admin, Manager   | User documentation                       |
+
+> **Note:** A `PhilippineClock` component (`components/ui/philippine-clock.tsx`) is embedded in `AppLayout` — it renders a live ticking clock in `Asia/Manila` timezone in the sidebar (full format) and the mobile header (compact format) on every protected page.
 
 ---
 
@@ -269,11 +272,10 @@ ZM-systems/
 | Role    | Description                                                    |
 |---------|---------------------------------------------------------------|
 | ADMIN   | Full system access. Not an employee. Created via `/coca-cola` |
-| MANAGER | Limited access. Is also an employee. Can log attendance only  |
+| MANAGER | Limited access. `employee_id` link is a legacy field and is not set during signup — all new accounts store `null` |
 
 ### Manager Restrictions
 - Cannot access: Payroll, Cash Advances, Settings, Audit Logs
-- Cannot see salary details of Admin or other Manager users
 - Cannot create, edit, or archive employees
 - Can only log attendance for employees
 
@@ -381,9 +383,9 @@ pnpm dev
 
 ---
 
-> **Last Updated**: February 23, 2026  
+> **Last Updated**: February 24, 2026  
 > **Author**: ZM Systems Development  
-> **Version**: 1.1.0
+> **Version**: 1.2.0
 
 ---
 

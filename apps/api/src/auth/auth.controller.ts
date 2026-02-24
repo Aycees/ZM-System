@@ -18,7 +18,6 @@ export class AuthController {
       dto.username,
       dto.password,
       dto.role,
-      dto.employeeId,
     );
     return { success: true, data: user, message: 'Account created successfully' };
   }
