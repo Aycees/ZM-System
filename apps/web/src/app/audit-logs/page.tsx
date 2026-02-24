@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Shield, ChevronLeft, ChevronRight } from 'lucide-react';
+import { TableSpinner } from '@/components/ui/table-spinner';
 
 export default function AuditLogsPage() {
   const [entityType, setEntityType] = useState('');
@@ -95,86 +96,86 @@ export default function AuditLogsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="space-y-3">{[...Array(8)].map((_, i) => <div key={i} className="h-10 bg-muted rounded animate-pulse" />)}</div>
-          ) : logs.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No audit logs found.</p>
-          ) : (
-            <>
-              <div className="overflow-x-auto -mx-4 sm:mx-0">
-                <table className="w-full text-sm min-w-[800px]">
-                  <thead>
-                    <tr className="border-b text-muted-foreground">
-                      <th className="text-left py-2.5 px-3 font-medium">Timestamp</th>
-                      <th className="text-left py-2.5 px-3 font-medium">User</th>
-                      <th className="text-left py-2.5 px-3 font-medium">Action</th>
-                      <th className="text-left py-2.5 px-3 font-medium">Entity</th>
-                      <th className="text-left py-2.5 px-3 font-medium">Changes</th>
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <table className="w-full text-sm min-w-[800px]">
+              <thead>
+                <tr className="border-b text-muted-foreground">
+                  <th className="text-left py-2.5 px-3 font-medium">Timestamp</th>
+                  <th className="text-left py-2.5 px-3 font-medium">User</th>
+                  <th className="text-left py-2.5 px-3 font-medium">Action</th>
+                  <th className="text-left py-2.5 px-3 font-medium">Entity</th>
+                  <th className="text-left py-2.5 px-3 font-medium">Changes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  <TableSpinner colSpan={5} message="Loading audit logs..." />
+                ) : logs.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center text-muted-foreground py-8">No audit logs found.</td>
+                  </tr>
+                ) : (
+                  logs.map((log: any) => (
+                    <tr key={log.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
+                      <td className="py-2.5 px-3 text-xs whitespace-nowrap">
+                        {new Date(log.timestamp).toLocaleString()}
+                      </td>
+                      <td className="py-2.5 px-3 font-medium">
+                        {log.user?.username || log.performedBy?.slice(0, 8)}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <Badge variant={actionColors[log.action] || 'secondary'}>
+                          {log.action.replace(/_/g, ' ')}
+                        </Badge>
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <span className="font-medium">{log.entityType}</span>
+                        <span className="text-muted-foreground text-xs ml-1">#{log.entityId?.slice(0, 8)}</span>
+                      </td>
+                      <td className="py-2.5 px-3 text-xs max-w-[300px]">
+                        {log.oldValue && (
+                          <details className="cursor-pointer">
+                            <summary className="text-muted-foreground hover:text-foreground">View changes</summary>
+                            <div className="mt-1 space-y-1">
+                              {log.oldValue && (
+                                <div className="bg-destructive/5 p-1.5 rounded text-xs">
+                                  <span className="font-medium text-destructive">Old:</span>{' '}
+                                  <code className="break-all">{JSON.stringify(log.oldValue)}</code>
+                                </div>
+                              )}
+                              {log.newValue && (
+                                <div className="bg-green-50 dark:bg-green-950/20 p-1.5 rounded text-xs">
+                                  <span className="font-medium text-green-600">New:</span>{' '}
+                                  <code className="break-all">{JSON.stringify(log.newValue)}</code>
+                                </div>
+                              )}
+                            </div>
+                          </details>
+                        )}
+                        {!log.oldValue && log.newValue && (
+                          <code className="text-xs break-all">{JSON.stringify(log.newValue)}</code>
+                        )}
+                        {!log.oldValue && !log.newValue && <span className="text-muted-foreground">—</span>}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {logs.map((log: any) => (
-                      <tr key={log.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
-                        <td className="py-2.5 px-3 text-xs whitespace-nowrap">
-                          {new Date(log.timestamp).toLocaleString()}
-                        </td>
-                        <td className="py-2.5 px-3 font-medium">
-                          {log.user?.username || log.performedBy?.slice(0, 8)}
-                        </td>
-                        <td className="py-2.5 px-3">
-                          <Badge variant={actionColors[log.action] || 'secondary'}>
-                            {log.action.replace(/_/g, ' ')}
-                          </Badge>
-                        </td>
-                        <td className="py-2.5 px-3">
-                          <span className="font-medium">{log.entityType}</span>
-                          <span className="text-muted-foreground text-xs ml-1">#{log.entityId?.slice(0, 8)}</span>
-                        </td>
-                        <td className="py-2.5 px-3 text-xs max-w-[300px]">
-                          {log.oldValue && (
-                            <details className="cursor-pointer">
-                              <summary className="text-muted-foreground hover:text-foreground">View changes</summary>
-                              <div className="mt-1 space-y-1">
-                                {log.oldValue && (
-                                  <div className="bg-destructive/5 p-1.5 rounded text-xs">
-                                    <span className="font-medium text-destructive">Old:</span>{' '}
-                                    <code className="break-all">{JSON.stringify(log.oldValue)}</code>
-                                  </div>
-                                )}
-                                {log.newValue && (
-                                  <div className="bg-green-50 dark:bg-green-950/20 p-1.5 rounded text-xs">
-                                    <span className="font-medium text-green-600">New:</span>{' '}
-                                    <code className="break-all">{JSON.stringify(log.newValue)}</code>
-                                  </div>
-                                )}
-                              </div>
-                            </details>
-                          )}
-                          {!log.oldValue && log.newValue && (
-                            <code className="text-xs break-all">{JSON.stringify(log.newValue)}</code>
-                          )}
-                          {!log.oldValue && !log.newValue && <span className="text-muted-foreground">—</span>}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
 
-              {/* Pagination */}
-              <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                <p className="text-sm text-muted-foreground">Page {page}</p>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}>
-                    <ChevronLeft className="h-4 w-4" /> Previous
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={logs.length < pageSize}>
-                    Next <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
+          {/* Pagination */}
+          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+            <p className="text-sm text-muted-foreground">Page {page}</p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1 || isLoading}>
+                <ChevronLeft className="h-4 w-4" /> Previous
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={logs.length < pageSize || isLoading}>
+                Next <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

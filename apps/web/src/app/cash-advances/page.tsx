@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Receipt } from 'lucide-react';
+import { TableSpinner } from '@/components/ui/table-spinner';
 
 export default function CashAdvancesPage() {
   const { isAdmin } = useAuth();
@@ -85,23 +86,25 @@ export default function CashAdvancesPage() {
 
       <Card>
         <CardContent className="pt-6">
-          {loading ? (
-            <div className="space-y-3">{[...Array(5)].map((_, i) => <div key={i} className="h-12 bg-muted rounded animate-pulse" />)}</div>
-          ) : advances.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No cash advances recorded yet.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="border-b text-muted-foreground">
-                  <th className="text-left py-2.5 px-3 font-medium">Employee</th>
-                  <th className="text-left py-2.5 px-3 font-medium">Date</th>
-                  <th className="text-left py-2.5 px-3 font-medium">Amount</th>
-                  <th className="text-left py-2.5 px-3 font-medium">Remaining</th>
-                  <th className="text-left py-2.5 px-3 font-medium">Description</th>
-                  <th className="text-left py-2.5 px-3 font-medium">Status</th>
-                </tr></thead>
-                <tbody>
-                  {advances.map((ca: any) => (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b text-muted-foreground">
+                <th className="text-left py-2.5 px-3 font-medium">Employee</th>
+                <th className="text-left py-2.5 px-3 font-medium">Date</th>
+                <th className="text-left py-2.5 px-3 font-medium">Amount</th>
+                <th className="text-left py-2.5 px-3 font-medium">Remaining</th>
+                <th className="text-left py-2.5 px-3 font-medium">Description</th>
+                <th className="text-left py-2.5 px-3 font-medium">Status</th>
+              </tr></thead>
+              <tbody>
+                {loading ? (
+                  <TableSpinner colSpan={6} message="Loading cash advances..." />
+                ) : advances.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center text-muted-foreground py-8">No cash advances recorded yet.</td>
+                  </tr>
+                ) : (
+                  advances.map((ca: any) => (
                     <tr key={ca.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
                       <td className="py-2.5 px-3 font-medium">{ca.employee?.fullName}</td>
                       <td className="py-2.5 px-3">{new Date(ca.dateGiven).toLocaleDateString()}</td>
@@ -114,11 +117,11 @@ export default function CashAdvancesPage() {
                         </Badge>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
     </div>

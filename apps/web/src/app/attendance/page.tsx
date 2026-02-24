@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { TableSpinner } from '@/components/ui/table-spinner';
 import { Clock, LogIn, LogOut, Pencil, Trash2 } from 'lucide-react';
 
 export default function AttendancePage() {
@@ -191,26 +192,28 @@ export default function AttendancePage() {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="space-y-3">{[...Array(5)].map((_, i) => <div key={i} className="h-12 bg-muted rounded animate-pulse" />)}</div>
-          ) : attendance.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No attendance records for this period.</p>
-          ) : (
-            <div className="overflow-x-auto -mx-4 sm:mx-0">
-              <table className="w-full text-sm min-w-[700px]">
-                <thead>
-                  <tr className="border-b text-muted-foreground">
-                    <th className="text-left py-2.5 px-3 font-medium">Employee</th>
-                    <th className="text-left py-2.5 px-3 font-medium">Date</th>
-                    <th className="text-left py-2.5 px-3 font-medium">Time In</th>
-                    <th className="text-left py-2.5 px-3 font-medium">Time Out</th>
-                    <th className="text-left py-2.5 px-3 font-medium">Hours</th>
-                    <th className="text-left py-2.5 px-3 font-medium">Status</th>
-                    <th className="text-left py-2.5 px-3 font-medium">Action</th>
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <table className="w-full text-sm min-w-[700px]">
+              <thead>
+                <tr className="border-b text-muted-foreground">
+                  <th className="text-left py-2.5 px-3 font-medium">Employee</th>
+                  <th className="text-left py-2.5 px-3 font-medium">Date</th>
+                  <th className="text-left py-2.5 px-3 font-medium">Time In</th>
+                  <th className="text-left py-2.5 px-3 font-medium">Time Out</th>
+                  <th className="text-left py-2.5 px-3 font-medium">Hours</th>
+                  <th className="text-left py-2.5 px-3 font-medium">Status</th>
+                  <th className="text-left py-2.5 px-3 font-medium">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <TableSpinner colSpan={7} message="Loading attendance records..." />
+                ) : attendance.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="text-center text-muted-foreground py-8">No attendance records for this period.</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {attendance.map((att: any) => (
+                ) : (
+                  attendance.map((att: any) => (
                     <tr key={att.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
                       <td className="py-2.5 px-3 font-medium">{att.employee?.fullName}</td>
                       <td className="py-2.5 px-3">{new Date(att.date).toLocaleDateString()}</td>
@@ -249,11 +252,11 @@ export default function AttendancePage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
     </div>

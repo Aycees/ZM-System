@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { TableSpinner } from '@/components/ui/table-spinner';
 import { Plus, Search, Archive } from 'lucide-react';
 
 export default function EmployeesPage() {
@@ -79,27 +80,27 @@ export default function EmployeesPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="space-y-3">
-              {[...Array(5)].map((_, i) => <div key={i} className="h-12 bg-muted rounded animate-pulse" />)}
-            </div>
-          ) : filtered.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No employees found.</p>
-          ) : (
-            <div className="overflow-x-auto -mx-4 sm:mx-0">
-              <table className="w-full text-sm min-w-[600px]">
-                <thead>
-                  <tr className="border-b text-muted-foreground">
-                    <th className="text-left py-2.5 px-3 font-medium">Name</th>
-                    <th className="text-left py-2.5 px-3 font-medium">Position</th>
-                    <th className="text-left py-2.5 px-3 font-medium hidden lg:table-cell">Contact</th>
-                    {isAdmin && <th className="text-left py-2.5 px-3 font-medium">Daily Rate</th>}
-                    <th className="text-left py-2.5 px-3 font-medium">Status</th>
-                    {isAdmin && <th className="text-left py-2.5 px-3 font-medium">Actions</th>}
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <table className="w-full text-sm min-w-[600px]">
+              <thead>
+                <tr className="border-b text-muted-foreground">
+                  <th className="text-left py-2.5 px-3 font-medium">Name</th>
+                  <th className="text-left py-2.5 px-3 font-medium">Position</th>
+                  <th className="text-left py-2.5 px-3 font-medium hidden lg:table-cell">Contact</th>
+                  {isAdmin && <th className="text-left py-2.5 px-3 font-medium">Daily Rate</th>}
+                  <th className="text-left py-2.5 px-3 font-medium">Status</th>
+                  {isAdmin && <th className="text-left py-2.5 px-3 font-medium">Actions</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <TableSpinner colSpan={isAdmin ? 6 : 4} message="Loading employees..." />
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={isAdmin ? 6 : 4} className="text-center text-muted-foreground py-8">No employees found.</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((emp: any) => (
+                ) : (
+                  filtered.map((emp: any) => (
                     <tr
                       key={emp.id}
                       className="border-b last:border-0 hover:bg-muted/50 transition-colors cursor-pointer"
@@ -126,11 +127,11 @@ export default function EmployeesPage() {
                         </td>
                       )}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
     </div>

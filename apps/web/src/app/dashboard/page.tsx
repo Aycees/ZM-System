@@ -5,14 +5,13 @@ import { useDashboardStats, useTodayAttendance } from '@/lib/queries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Users, Clock, AlertTriangle, Wallet } from 'lucide-react';
+import { TableSpinner } from '@/components/ui/table-spinner';
 
 export default function DashboardPage() {
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: todayAttendance = [], isLoading: attLoading } = useTodayAttendance();
 
-  const loading = statsLoading || attLoading;
-
-  if (loading) {
+  if (statsLoading) {
     return (
       <div className="space-y-6 animate-pulse">
         <div className="h-8 bg-muted rounded w-48" />
@@ -91,23 +90,27 @@ export default function DashboardPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {todayAttendance.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No attendance logged today.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-muted-foreground">
-                    <th className="text-left py-2.5 px-3 font-medium">Employee</th>
-                    <th className="text-left py-2.5 px-3 font-medium">Position</th>
-                    <th className="text-left py-2.5 px-3 font-medium">Time In</th>
-                    <th className="text-left py-2.5 px-3 font-medium">Time Out</th>
-                    <th className="text-left py-2.5 px-3 font-medium">Hours</th>
-                    <th className="text-left py-2.5 px-3 font-medium">Status</th>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-muted-foreground">
+                  <th className="text-left py-2.5 px-3 font-medium">Employee</th>
+                  <th className="text-left py-2.5 px-3 font-medium">Position</th>
+                  <th className="text-left py-2.5 px-3 font-medium">Time In</th>
+                  <th className="text-left py-2.5 px-3 font-medium">Time Out</th>
+                  <th className="text-left py-2.5 px-3 font-medium">Hours</th>
+                  <th className="text-left py-2.5 px-3 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {attLoading ? (
+                  <TableSpinner colSpan={6} message="Loading today's attendance..." />
+                ) : todayAttendance.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-sm text-muted-foreground text-center py-8">No attendance logged today.</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {todayAttendance.map((att: any) => (
+                ) : (
+                  todayAttendance.map((att: any) => (
                     <tr key={att.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
                       <td className="py-2.5 px-3 font-medium">{att.employee?.fullName}</td>
                       <td className="py-2.5 px-3 text-muted-foreground">{att.employee?.position}</td>
@@ -122,11 +125,11 @@ export default function DashboardPage() {
                         </Badge>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
     </div>
