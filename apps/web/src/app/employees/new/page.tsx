@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DatePicker } from '@/components/ui/date-picker';
 import { ArrowLeft } from 'lucide-react';
 
 export default function NewEmployeePage() {
@@ -75,7 +76,7 @@ export default function NewEmployeePage() {
 
               <div className="space-y-2">
                 <Label htmlFor="hireDate">Date of Hire *</Label>
-                <Input id="hireDate" type="date" value={form.hireDate} onChange={(e) => updateField('hireDate', e.target.value)} required />
+                <DatePicker value={form.hireDate} onChange={(val) => updateField('hireDate', val)} placeholder="Select hire date" />
               </div>
             </div>
 

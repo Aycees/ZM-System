@@ -4,8 +4,8 @@ import React, { useState } from 'react';
 import { useAuditLogs } from '@/lib/queries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Badge } from '@/components/ui/badge';
 import { Shield, ChevronLeft, ChevronRight } from 'lucide-react';
 import { TableSpinner } from '@/components/ui/table-spinner';
@@ -87,11 +87,11 @@ export default function AuditLogsPage() {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">From</Label>
-              <Input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); }} />
+              <DatePicker value={dateFrom} onChange={(val) => { setDateFrom(val); setPage(1); }} placeholder="From date" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">To</Label>
-              <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1); }} />
+              <DatePicker value={dateTo} onChange={(val) => { setDateTo(val); setPage(1); }} placeholder="To date" />
             </div>
           </div>
         </CardHeader>

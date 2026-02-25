@@ -5,8 +5,8 @@ import { useAuth } from '@/lib/auth-context';
 import { useDownloadPayrollReport, useDownloadAttendanceReport } from '@/lib/queries';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DatePicker } from '@/components/ui/date-picker';
 import { FileDown, FileSpreadsheet } from 'lucide-react';
 
 export default function ReportsPage() {
@@ -44,11 +44,11 @@ export default function ReportsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div className="space-y-1">
               <Label className="text-xs">From</Label>
-              <Input type="date" value={attendanceDates.dateFrom} onChange={(e) => setAttendanceDates({ ...attendanceDates, dateFrom: e.target.value })} />
+              <DatePicker value={attendanceDates.dateFrom} onChange={(val) => setAttendanceDates({ ...attendanceDates, dateFrom: val })} placeholder="From date" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">To</Label>
-              <Input type="date" value={attendanceDates.dateTo} onChange={(e) => setAttendanceDates({ ...attendanceDates, dateTo: e.target.value })} />
+              <DatePicker value={attendanceDates.dateTo} onChange={(val) => setAttendanceDates({ ...attendanceDates, dateTo: val })} placeholder="To date" />
             </div>
           </div>
           {attendanceReport.isError && (
@@ -75,11 +75,11 @@ export default function ReportsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div className="space-y-1">
                 <Label className="text-xs">Period Start</Label>
-                <Input type="date" value={payrollDates.periodStart} onChange={(e) => setPayrollDates({ ...payrollDates, periodStart: e.target.value })} />
+                <DatePicker value={payrollDates.periodStart} onChange={(val) => setPayrollDates({ ...payrollDates, periodStart: val })} placeholder="Period start" />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Period End</Label>
-                <Input type="date" value={payrollDates.periodEnd} onChange={(e) => setPayrollDates({ ...payrollDates, periodEnd: e.target.value })} />
+                <DatePicker value={payrollDates.periodEnd} onChange={(val) => setPayrollDates({ ...payrollDates, periodEnd: val })} placeholder="Period end" />
               </div>
             </div>
             {payrollReport.isError && (

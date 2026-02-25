@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { TableSpinner } from '@/components/ui/table-spinner';
@@ -136,7 +137,7 @@ export default function AttendancePage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Date</Label>
-                  <Input type="date" value={clockInForm.date} onChange={(e) => setClockInForm({ ...clockInForm, date: e.target.value })} required />
+                  <DatePicker value={clockInForm.date} onChange={(val) => setClockInForm({ ...clockInForm, date: val })} placeholder="Select date" />
                 </div>
                 <div className="space-y-2">
                   <Label>Time In</Label>
@@ -183,11 +184,11 @@ export default function AttendancePage() {
           <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-row sm:items-end">
             <div className="space-y-1 sm:flex-1">
               <Label className="text-xs">From</Label>
-              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-full" />
+              <DatePicker value={dateFrom} onChange={setDateFrom} placeholder="From date" />
             </div>
             <div className="space-y-1 sm:flex-1">
               <Label className="text-xs">To</Label>
-              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-full" />
+              <DatePicker value={dateTo} onChange={setDateTo} placeholder="To date" />
             </div>
           </div>
         </CardHeader>
