@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Receipt } from 'lucide-react';
 import { TableSpinner } from '@/components/ui/table-spinner';
@@ -68,7 +69,7 @@ export default function CashAdvancesPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Date Given</Label>
-                  <Input type="date" value={form.dateGiven} onChange={(e) => setForm({ ...form, dateGiven: e.target.value })} required />
+                  <DatePicker value={form.dateGiven} onChange={(val) => setForm({ ...form, dateGiven: val })} placeholder="Select date" />
                 </div>
                 <div className="space-y-2">
                   <Label>Description</Label>

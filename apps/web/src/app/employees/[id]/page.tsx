@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Save } from 'lucide-react';
 
@@ -137,7 +138,7 @@ export default function EmployeeDetailPage() {
             <div className="space-y-2">
               <Label>Date of Hire</Label>
               {editing ? (
-                <Input type="date" value={form.hireDate} onChange={(e) => setForm({ ...form, hireDate: e.target.value })} />
+                <DatePicker value={form.hireDate} onChange={(val) => setForm({ ...form, hireDate: val })} placeholder="Select hire date" />
               ) : (
                 <p className="text-sm font-medium">{new Date(employee.hireDate).toLocaleDateString()}</p>
               )}

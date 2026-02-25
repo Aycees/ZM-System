@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Lock, Trash2 } from 'lucide-react';
 import Link from 'next/link';
@@ -139,7 +140,7 @@ export default function PayrollPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>Period Start</Label>
-                  <Input type="date" value={generateForm.periodStart} onChange={(e) => setGenerateForm({ ...generateForm, periodStart: e.target.value })} required />
+                  <DatePicker value={generateForm.periodStart} onChange={(val) => setGenerateForm({ ...generateForm, periodStart: val })} placeholder="Select start date" />
                 </div>
                 <div className="space-y-2">
                   <Label>Frequency</Label>
@@ -156,7 +157,7 @@ export default function PayrollPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Period End (auto)</Label>
-                  <Input type="date" value={periodEnd} disabled className="bg-muted" />
+                  <DatePicker value={periodEnd} onChange={() => {}} disabled placeholder="Auto-calculated" />
                 </div>
               </div>
 
