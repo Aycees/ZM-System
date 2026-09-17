@@ -5,7 +5,7 @@ services:
     region: oregon
     plan: free
 
-    buildCommand: pnpm install --frozen-lockfile && pnpm --filter=@zm/shared build && pnpm --filter=@zm/db build && pnpm --filter=@zm/api build
+    buildCommand: pnpm install --frozen-lockfile --prod=false && pnpm --filter=@zm/shared build && pnpm --filter=@zm/db build && pnpm --filter=@zm/api build
     preDeployCommand: pnpm --filter=@zm/db exec prisma migrate deploy
     startCommand: node apps/api/dist/main
 
